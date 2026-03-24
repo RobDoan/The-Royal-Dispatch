@@ -94,7 +94,12 @@ export default function PlayPage() {
   }
 
   if (pageState === 'timeout' || pageState === 'error') {
-    const sorryKey = `sorryMessages.${princessId}` as const;
+    const sorryMessage = {
+      elsa: t('sorryMessages.elsa'),
+      belle: t('sorryMessages.belle'),
+      cinderella: t('sorryMessages.cinderella'),
+      ariel: t('sorryMessages.ariel'),
+    }[princessId] ?? t('sorryMessages.elsa');
     return (
       <div className="fixed inset-0 flex flex-col items-center justify-center bg-[var(--background)] px-8 text-center gap-6">
         <img
@@ -103,7 +108,7 @@ export default function PlayPage() {
           className="w-48 h-48 object-cover rounded-full shadow-lg opacity-80"
         />
         <p className="text-xl font-bold text-gray-700 max-w-xs leading-snug">
-          {t(sorryKey as any)}
+          {sorryMessage}
         </p>
         <button
           onClick={() => router.push(`/${locale}`)}

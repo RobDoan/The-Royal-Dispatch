@@ -56,5 +56,6 @@ describe('AudioPlayer', () => {
     // Runtime label and footer right timestamp both use formatTime(undefined) = '--:--'
     const dashes = screen.getAllByText('--:--');
     expect(dashes.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Runtime:.*--:--/)).toBeInTheDocument();
   });
 });

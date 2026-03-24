@@ -73,3 +73,17 @@ def get_today_stories():
     result = client.table("stories").select("princess,audio_url").eq("date", today).execute()
     cached = {row["princess"]: row["audio_url"] for row in (result.data or [])}
     return {"date": today, "cached": cached}
+
+class StoryDetailResponse(BaseModel):
+    audio_url: str
+    story_text: str
+
+@app.get("/story/today/{princess}", response_model=StoryDetailResponse)
+def get_today_story_for_princess(princess: str):
+    today = date.today().isoformat()
+    client = get_supabase_client()
+    result = client.table("stories").select("audio_url,story_text").eq("date", today).eq("princess", princess).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Story not found for today")
+    row = result.data[0]
+    return StoryDetailResponse(audio_url=row["audio_url"], story_text=row["story_text"])

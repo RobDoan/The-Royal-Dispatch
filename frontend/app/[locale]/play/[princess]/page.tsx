@@ -40,18 +40,21 @@ export default function PlayPage() {
   const [audioUrl, setAudioUrl] = useState('');
   const [storyText, setStoryText] = useState('');
 
-  const elapsedRef = useRef(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
+    let stopped = false;
+    const startTime = Date.now();
+
     function stopPolling() {
+      stopped = true;
       if (intervalRef.current) clearInterval(intervalRef.current);
     }
 
-    intervalRef.current = setInterval(async () => {
-      elapsedRef.current += POLL_INTERVAL_MS;
+    async function poll() {
+      if (stopped) return;
 
-      if (elapsedRef.current >= POLL_TIMEOUT_MS) {
+      if (Date.now() - startTime >= POLL_TIMEOUT_MS) {
         stopPolling();
         setPageState('timeout');
         return;
@@ -59,6 +62,7 @@ export default function PlayPage() {
 
       try {
         const result = await fetchStory(princessId as Princess);
+        if (stopped) return; // interval fired again while we were awaiting
         stopPolling();
         setAudioUrl(result.audioUrl);
         setStoryText(result.storyText);
@@ -70,7 +74,11 @@ export default function PlayPage() {
         }
         // STORY_NOT_FOUND → keep polling
       }
-    }, POLL_INTERVAL_MS);
+    }
+
+    // Fire immediately, then every 3 seconds
+    poll();
+    intervalRef.current = setInterval(poll, POLL_INTERVAL_MS);
 
     return stopPolling;
   }, [princessId]);
@@ -122,6 +130,7 @@ export default function PlayPage() {
         className="absolute inset-0"
         style={{ backgroundColor: overlay }}
       />
+      <span className="sr-only">{t('writing', { princess: meta.name })}</span>
     </div>
   );
 }

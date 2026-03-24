@@ -28,7 +28,7 @@ The Royal Dispatch is a personalized bedtime storytelling PWA for Emma (age 4). 
 ```
 Parent sends WhatsApp brief
        ↓
-n8n receives webhook → transcribes voice if needed → stores brief in Supabase
+n8n receives webhook → transcribes voice via Whisper API if needed → stores brief in Supabase
        ↓
 Emma opens iPad PWA → sees Royal Inbox with 4 princess letters
        ↓
@@ -69,7 +69,7 @@ The parent's brief is classified into one of two modes:
 
 ### Stack
 - **Frontend:** Next.js PWA (iPad, deployed as home screen app)
-- **Orchestration:** n8n (WhatsApp webhook + voice transcription)
+- **Orchestration:** n8n (WhatsApp webhook + voice transcription via OpenAI Whisper API)
 - **Backend:** FastAPI + LangGraph (Python)
 - **LLM:** Claude (story generation + tone classification)
 - **Voice:** ElevenLabs v3 with Expressive Mode audio tags
@@ -104,7 +104,7 @@ class RoyalState(TypedDict):
     tone: str          # "praise" | "habit"
     story_text: str    # generated letter with ElevenLabs audio tags
     audio_url: str     # Supabase Storage URL
-    language: str      # "mixed" (EN/VI)
+    language: str      # "en" | "vi"
 ```
 
 ### Nodes
@@ -208,15 +208,18 @@ CREATE TABLE stories (
 - Magic shimmer animation on the chosen princess card
 - Short text: "Elsa is writing your letter..." or similar
 - Target: 5–10 seconds generation time
+- **Timeout/error:** If generation exceeds 15 seconds or fails, show a soft error: "Elsa's letter is on its way — try again in a moment 💌". No crash, no blank screen.
 
 ---
 
 ## Language
 
-Stories are generated in a natural English/Vietnamese mix. The LLM prompt instructs Claude to blend both languages the way a bilingual child would hear them — key emotional phrases in Vietnamese, narrative flow in English (or vice versa), never feeling forced.
+The parent selects the language via a dropdown in the top-right corner of the Royal Inbox. Two options: **🇬🇧 English** and **🇻🇳 Tiếng Việt**.
 
-Example blend:
-> *"Emma ơi, I heard about what you did today. Con đã chia sẻ những khối gỗ của mình — and that, my dear, is what makes a true princess."*
+- The dropdown controls both the **frontend i18n** (all UI labels, greetings, and button text switch language) and the **story generation language** (the LLM generates the full letter in the selected language)
+- The selected language is persisted in `localStorage` so it survives page reloads
+- The language value is passed to `POST /story` as a parameter so the LangGraph pipeline prompts Claude in the correct language
+- ElevenLabs voice selection remains the same — both languages use the same princess voices (ElevenLabs v3 supports multilingual output per voice)
 
 ---
 

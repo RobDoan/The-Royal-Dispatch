@@ -64,9 +64,6 @@ export default function InboxPage() {
     }
     return locale;
   });
-  const [loadingPrincess, setLoadingPrincess] = useState<Princess | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
   useEffect(() => {
     localStorage.setItem('rd-language', language);
   }, [language]);
@@ -76,16 +73,10 @@ export default function InboxPage() {
     origin: t(`origins.${p.id}`),
   }));
 
-  async function handleSelectPrincess(id: Princess) {
-    setLoadingPrincess(id);
-    setError(null);
-    try {
-      const audioUrl = await requestStory(id, language);
-      router.push(`/${locale}/play/${id}?audio=${encodeURIComponent(audioUrl)}`);
-    } catch {
-      setError(t('error', { princess: id }));
-      setLoadingPrincess(null);
-    }
+  function handleSelectPrincess(id: Princess) {
+    // Fire generation — no await. Errors are handled on the play page.
+    void requestStory(id, language);
+    router.push(`/${locale}/play/${id}`);
   }
 
   return (
@@ -119,19 +110,9 @@ export default function InboxPage() {
               key={p.id}
               princess={p}
               onClick={handleSelectPrincess}
-              isLoading={loadingPrincess === p.id}
             />
           ))}
         </div>
-      </div>
-
-      {/* Error Message */}
-      <div className="w-full px-6 flex items-center justify-center">
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-2xl p-4 w-full text-center">
-            <p className="text-red-500 text-sm font-bold tracking-wide">{error}</p>
-          </div>
-        )}
       </div>
 
     </main>

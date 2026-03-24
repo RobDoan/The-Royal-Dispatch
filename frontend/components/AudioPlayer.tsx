@@ -7,15 +7,29 @@ import { useRouter } from 'next/navigation';
 interface Props {
   princess: { id: string; name: string; emoji: string; origin?: string };
   audioUrl: string;
+  storyText: string;
 }
 
-export function AudioPlayer({ princess, audioUrl }: Props) {
+// duration is undefined until loadedmetadata fires; progress is always a number (starts at 0).
+function formatTime(seconds: number | undefined): string {
+  if (seconds === undefined || isNaN(seconds)) return '--:--';
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+function stripAudioTags(text: string): string {
+  // Strip [ALL_CAPS] tags then collapse any resulting double spaces.
+  return text.replace(/\[[A-Z_]+\]/g, '').replace(/\s{2,}/g, ' ').trim();
+}
+
+export function AudioPlayer({ princess, audioUrl, storyText }: Props) {
   const t = useTranslations('app');
   const router = useRouter();
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const [duration, setDuration] = useState<number | undefined>(undefined);
   
   // Toddler Lock state
   const [holdProgress, setHoldProgress] = useState(0);
@@ -26,15 +40,17 @@ export function AudioPlayer({ princess, audioUrl }: Props) {
     if (!audio) return;
     audio.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
     audio.onended = () => setPlaying(false);
-    
+
     const handleTimeUpdate = () => {
       setProgress(audio.currentTime);
-      setDuration(audio.duration || 100); 
     };
+    const handleMetadata = () => setDuration(audio.duration);
+
     audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('loadedmetadata', () => setDuration(audio.duration));
+    audio.addEventListener('loadedmetadata', handleMetadata);
     return () => {
       audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('loadedmetadata', handleMetadata);
       audio.onended = null;
     };
   }, [audioUrl]);
@@ -67,7 +83,7 @@ export function AudioPlayer({ princess, audioUrl }: Props) {
     setHoldProgress(0);
   }, []);
 
-  const progressPercent = duration > 0 ? (progress / duration) * 100 : 0;
+  const progressPercent = duration && duration > 0 ? (progress / duration) * 100 : 0;
 
   return (
     <div className="fixed inset-0 bg-black font-sans overflow-hidden">
@@ -122,18 +138,16 @@ export function AudioPlayer({ princess, audioUrl }: Props) {
              
              {/* Title & Metadata */}
              <div className="mb-8">
+               <div className="text-4xl mb-2">{princess.emoji}</div>
                <h1 className="text-[40px] leading-tight font-black tracking-tight mb-2 text-gray-900" style={{ fontFamily: '"Quicksand", sans-serif' }}>
                  {princess.name}
                </h1>
                <p className="text-gray-400 font-bold mb-1 uppercase tracking-wider text-[11px]">{princess.origin || 'Fairy Tale'} • Bedtime Story</p>
-               <p className="text-gray-500 font-semibold mb-8 text-sm">Runtime: 7 mins</p>
+               <p className="text-gray-500 font-semibold mb-8 text-sm">Runtime: {formatTime(duration)}</p>
              </div>
 
-             {/* Mock Transcript Text */}
              <div className="text-[17px] text-gray-700 leading-relaxed space-y-7 font-medium pb-8 w-full max-w-prose">
-               <p>Welcome to the enchanting world of {princess.name}. This is a beautifully crafted story that takes you on a magnificent journey.</p>
-               <p>As the sun sets over the kingdom, our hero discovers a hidden path that leads to a secret garden. The flowers there glow with a soft, magical light, and the gentle breeze carries the sweet scent of adventure.</p>
-               <p>With every step, the magic grows stronger. Friends are made, challenges are overcome, and the true meaning of courage and kindness is revealed. The journey is not just about reaching the destination, but about the beautiful moments shared along the way.</p>
+               <p>{stripAudioTags(storyText)}</p>
              </div>
           </div>
 
@@ -143,7 +157,7 @@ export function AudioPlayer({ princess, audioUrl }: Props) {
             {/* Minimal Progress Bar */}
             <div className="w-full flex items-center justify-between mt-2 mb-4">
               <span className="text-[11px] font-bold text-gray-400 w-10 text-left">
-                0:{Math.floor(progress).toString().padStart(2, '0')}
+                {formatTime(progress)}
               </span>
               <div className="flex-1 max-w-[200px] h-1.5 bg-gray-200 rounded-full mx-4">
                 <div 
@@ -154,7 +168,7 @@ export function AudioPlayer({ princess, audioUrl }: Props) {
                 </div>
               </div>
               <span className="text-[11px] font-bold text-gray-400 w-10 text-right">
-                {duration ? `0:${Math.floor(duration).toString().padStart(2, '0')}` : '7:00'}
+                {formatTime(duration)}
               </span>
             </div>
 

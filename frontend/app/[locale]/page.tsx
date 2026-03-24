@@ -9,32 +9,48 @@ import { requestStory, Princess } from '@/lib/api';
 
 const PRINCESSES: PrincessConfig[] = [
   {
-    id: 'elsa', name: 'Queen Elsa', emoji: '❄️',
-    bgColor: 'bg-blue-50', borderColor: 'border-blue-300',
-    labelColor: 'text-blue-500', nameColor: 'text-blue-900',
+    id: 'elsa',
+    name: 'Queen Elsa',
+    emoji: '❄️',
+    // Using an Unsplash placeholder representing a snowy, icy landscape
+    imageUrl: '/characters/elsa.png',
+    bgColor: 'bg-blue-300', borderColor: 'border-blue-300',
+    labelColor: 'text-blue-600', nameColor: 'text-blue-900',
     avatarGradient: 'from-blue-200 to-blue-400', badgeBg: 'bg-blue-100',
-    origin: '',
+    origin: 'Arendelle', isNew: true,
   },
   {
-    id: 'belle', name: 'Belle', emoji: '📚',
-    bgColor: 'bg-amber-50', borderColor: 'border-amber-300',
-    labelColor: 'text-amber-600', nameColor: 'text-amber-900',
+    id: 'belle',
+    name: 'Belle',
+    emoji: '📚',
+    // Using a beautiful Unsplash placeholder representing golden books/library
+    imageUrl: '/characters/belle.png',
+    bgColor: 'bg-yellow-300', borderColor: 'border-amber-300',
+    labelColor: 'text-amber-700', nameColor: 'text-amber-900',
     avatarGradient: 'from-yellow-200 to-amber-300', badgeBg: 'bg-amber-100',
-    origin: '',
+    origin: 'The Enchanted Castle', isNew: false,
   },
   {
-    id: 'cinderella', name: 'Cinderella', emoji: '👠',
-    bgColor: 'bg-fuchsia-50', borderColor: 'border-fuchsia-300',
-    labelColor: 'text-fuchsia-600', nameColor: 'text-fuchsia-900',
+    id: 'cinderella',
+    name: 'Cinderella',
+    emoji: '👠',
+    // Using an Unsplash placeholder representing magic carriage/night palace
+    imageUrl: '/characters/cinderella.png',
+    bgColor: 'bg-pink-300', borderColor: 'border-fuchsia-300',
+    labelColor: 'text-fuchsia-700', nameColor: 'text-fuchsia-900',
     avatarGradient: 'from-fuchsia-200 to-pink-300', badgeBg: 'bg-fuchsia-100',
-    origin: '',
+    origin: 'The Royal Palace', isNew: true,
   },
   {
-    id: 'ariel', name: 'Ariel', emoji: '🐠',
-    bgColor: 'bg-teal-50', borderColor: 'border-teal-300',
-    labelColor: 'text-teal-600', nameColor: 'text-teal-900',
+    id: 'ariel',
+    name: 'Ariel',
+    emoji: '🧜‍♀️',
+    // Using an Unsplash placeholder representing magical ocean/underwater
+    imageUrl: '/characters/ariel.png',
+    bgColor: 'bg-emerald-300', borderColor: 'border-teal-300',
+    labelColor: 'text-teal-700', nameColor: 'text-teal-900',
     avatarGradient: 'from-teal-200 to-cyan-300', badgeBg: 'bg-teal-100',
-    origin: '',
+    origin: 'Atlantica', isNew: false,
   },
 ];
 
@@ -73,33 +89,51 @@ export default function InboxPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-purple-50 via-pink-50 to-blue-50 p-6 flex flex-col items-center gap-4">
-      <div className="w-full max-w-md flex items-center justify-between">
-        <span className="text-purple-400 text-xs font-extrabold tracking-widest uppercase">✨ {t('title')}</span>
-        <LanguageSelector value={language} onChange={setLanguage} />
-      </div>
+    <main className="min-h-screen bg-[var(--background)] pb-24 font-sans max-w-md mx-auto relative overflow-x-hidden pt-safe">
 
-      <div className="text-center mb-2">
-        <h1 className="text-purple-900 text-xl font-extrabold">{t('greeting')}</h1>
-        <p className="text-purple-400 text-sm font-semibold mt-1">{t('subtitle')} 💌</p>
-      </div>
-
-      <div className="w-full max-w-md flex flex-col gap-3">
-        {princesses.map((p) => (
-          <PrincessCard
-            key={p.id}
-            princess={p}
-            onClick={handleSelectPrincess}
-            isLoading={loadingPrincess === p.id}
-          />
-        ))}
-      </div>
-
-      {error && (
-        <div className="w-full max-w-md bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 text-center">
-          <p className="text-amber-800 text-sm font-semibold">{error}</p>
+      {/* Header */}
+      <header className="px-6 pt-12 pb-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-full flex items-center justify-center text-2xl shadow-sm border-2 border-white bg-gradient-to-tr from-yellow-300 to-yellow-100 relative">
+            <div className="absolute -right-1 -bottom-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white" />
+            👧
+          </div>
+          <div>
+            <p className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">{t('greeting', { defaultValue: 'Welcome back' })}</p>
+            <h1 className="text-gray-900 text-xl font-extrabold tracking-tight">Emma!</h1>
+          </div>
         </div>
-      )}
+        <button className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors relative">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+          <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-[#FF7A45] rounded-full border-2 border-[#FCF8F3]" />
+        </button>
+      </header>
+
+
+      {/* Recommended Area */}
+      <div className="mb-4">
+        {/* Grid Layout */}
+        <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-6 px-6 pb-12 pt-2">
+          {princesses.map((p) => (
+            <PrincessCard
+              key={p.id}
+              princess={p}
+              onClick={handleSelectPrincess}
+              isLoading={loadingPrincess === p.id}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Error Message */}
+      <div className="w-full px-6 flex items-center justify-center">
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-4 w-full text-center">
+            <p className="text-red-500 text-sm font-bold tracking-wide">{error}</p>
+          </div>
+        )}
+      </div>
+
     </main>
   );
 }

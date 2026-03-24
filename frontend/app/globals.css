@@ -1,8 +1,24 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Warm Storybook Colors */
+  --background: #FCF8F3;
+  --foreground: #333333;
+  
+  --color-primary-orange: #FF7A45;
+  --color-primary-orange-light: #FF9B73;
+  
+  /* Category Pills */
+  --color-cat-yellow: #FFF3D6;
+  --color-cat-blue: #E8F4FF;
+  --color-cat-purple: #F3E8FF;
+  --color-cat-peach: #FFEBE1;
+
+  --color-accent-mint: #98FF98;
+  --color-accent-rose: #FFB7C5;
+
+  /* Fonts */
+  --font-primary: 'Nunito', 'Quicksand', system-ui, sans-serif;
 }
 
 @theme inline {
@@ -10,6 +26,41 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  
+  /* Custom theme colors */
+  --color-lavender-500: var(--color-primary-lavender);
+  --color-gold-500: var(--color-primary-gold);
+  --color-midnight-900: var(--color-secondary-midnight);
+  --color-mint-400: var(--color-accent-mint);
+  --color-rose-400: var(--color-accent-rose);
+
+  /* Animations */
+  --animate-ken-burns: ken-burns 20s ease-in-out infinite alternate;
+  --animate-pulse-glow: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-zoom-in: zoom-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+
+  @keyframes ken-burns {
+    0% { transform: scale(1) translate(0, 0); }
+    100% { transform: scale(1.15) translate(-2%, -2%); }
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+      box-shadow: 0 0 20px 5px currentColor;
+    }
+    50% {
+      opacity: .8;
+      transform: scale(1.05);
+      box-shadow: 0 0 40px 15px currentColor;
+    }
+  }
+
+  @keyframes zoom-in {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
 }
 
 @media (prefers-color-scheme: dark) {

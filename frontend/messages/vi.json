@@ -1,0 +1,16 @@
+{
+  "app": {
+    "title": "Thư Từ Công Chúa",
+    "greeting": "Chào buổi tối, Công chúa Emma",
+    "subtitle": "Thư của em đã đến rồi",
+    "loading": "{princess} đang viết thư cho em...",
+    "error": "Thư của {princess} đang trên đường — thử lại một chút nhé 💌",
+    "playing": "Đang phát thư của {princess} cho Emma...",
+    "origins": {
+      "elsa": "Vương quốc Arendelle",
+      "belle": "Lâu đài Phù chú",
+      "cinderella": "Hoàng cung",
+      "ariel": "Dưới lòng đại dương"
+    }
+  }
+}

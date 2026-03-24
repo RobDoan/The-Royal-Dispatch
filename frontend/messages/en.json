@@ -1,0 +1,16 @@
+{
+  "app": {
+    "title": "The Royal Dispatch",
+    "greeting": "Good evening, Princess Emma",
+    "subtitle": "Your letters have arrived",
+    "loading": "{princess} is writing your letter...",
+    "error": "{princess}'s letter is on its way — try again in a moment 💌",
+    "playing": "Playing {princess}'s letter to Emma...",
+    "origins": {
+      "elsa": "Kingdom of Arendelle",
+      "belle": "The Enchanted Castle",
+      "cinderella": "The Royal Palace",
+      "ariel": "Under the Sea"
+    }
+  }
+}

@@ -14,3 +14,11 @@ export async function requestStory(princess: Princess, language: Language): Prom
   const data = await res.json();
   return data.audio_url as string;
 }
+
+export async function fetchStory(princess: Princess): Promise<{ audioUrl: string; storyText: string }> {
+  const res = await fetch(`${API_URL}/story/today/${princess}`);
+  if (res.status === 404) throw new Error('STORY_NOT_FOUND');
+  if (!res.ok) throw new Error('STORY_ERROR');
+  const data = await res.json();
+  return { audioUrl: data.audio_url, storyText: data.story_text };
+}

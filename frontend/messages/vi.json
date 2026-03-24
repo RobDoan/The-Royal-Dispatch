@@ -6,6 +6,14 @@
     "loading": "{princess} đang viết thư cho em...",
     "error": "Thư của {princess} đang trên đường — thử lại một chút nhé 💌",
     "playing": "Đang phát thư của {princess} cho Emma...",
+    "writing": "{princess} đang viết thư cho em...",
+    "goBack": "Quay lại",
+    "sorryMessages": {
+      "elsa": "Elsa bị mắc kẹt trong trận bão tuyết ở Arendelle... ❄️ Thử lại một lát nữa nhé!",
+      "belle": "Belle đang mải đọc cuốn sách yêu thích 📚 Cô ấy sẽ quay lại sớm thôi!",
+      "cinderella": "Cinderella đang ở vũ hội hoàng gia tối nay 👠 Thử lại một chút nhé!",
+      "ariel": "Ariel đang bơi cùng những chú cá heo và chưa thể lên mặt nước 🐠 Thử lại sớm nhé!"
+    },
     "origins": {
       "elsa": "Vương quốc Arendelle",
       "belle": "Lâu đài Phù chú",

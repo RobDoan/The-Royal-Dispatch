@@ -6,6 +6,14 @@
     "loading": "{princess} is writing your letter...",
     "error": "{princess}'s letter is on its way — try again in a moment 💌",
     "playing": "Playing {princess}'s letter to Emma...",
+    "writing": "{princess} is writing your letter...",
+    "goBack": "Go Back",
+    "sorryMessages": {
+      "elsa": "Elsa got caught in a snowstorm in Arendelle... ❄️ Try again in a little while!",
+      "belle": "Belle is lost in her favourite book right now 📚 She'll be back soon!",
+      "cinderella": "Cinderella is at the royal ball tonight 👠 Try again in a moment!",
+      "ariel": "Ariel is swimming with the dolphins and can't come to the surface 🐠 Try again soon!"
+    },
     "origins": {
       "elsa": "Kingdom of Arendelle",
       "belle": "The Enchanted Castle",

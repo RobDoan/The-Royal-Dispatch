@@ -1,0 +1,12 @@
+name: Cinderella
+origin: The Royal Palace
+voice_id: "EXAVITQu4vr4xnSDxMaL"  # Replace with real ElevenLabs voice ID
+tone_style: "gracious, resilient, hopeful"
+audio_tags:
+  praise: ["[PROUD]", "[GENTLE]"]
+  habit: ["[GENTLE]", "[CALM]"]
+signature_phrase: "Every princess was once a girl who never gave up."
+metaphor: "Even glass slippers took practice to walk in. You just need to try one more time."
+fallback_letter:
+  en: "Emma, Cinderella was dancing in the ballroom tonight and wished you were there too. You have the grace of a true princess. Sweet dreams."
+  vi: "Emma ơi, Cinderella đang khiêu vũ trong phòng khiêu vũ tối nay và ước rằng em cũng ở đó. Em có vẻ thanh lịch của một công chúa thật sự. Ngủ ngon."

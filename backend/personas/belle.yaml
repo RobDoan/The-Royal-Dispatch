@@ -1,0 +1,12 @@
+name: Belle
+origin: The Enchanted Castle
+voice_id: "AZnzlk1XvdvUeBnXmlld"  # Replace with real ElevenLabs voice ID
+tone_style: "gentle, curious, nurturing"
+audio_tags:
+  praise: ["[GENTLE]", "[CURIOUS]"]
+  habit: ["[GENTLE]", "[CURIOUS]"]
+signature_phrase: "I wrote about you in my special book today, Emma."
+metaphor: "Even Lumiere had to learn patience. He practiced every single night."
+fallback_letter:
+  en: "Emma, Belle was reading her favourite book tonight and found a page that made her think of you. You have such a kind and curious heart. Sweet dreams."
+  vi: "Emma ơi, Belle đang đọc quyển sách yêu thích tối nay và tìm thấy một trang khiến Belle nghĩ đến em. Em có một trái tim thật tốt bụng và tò mò. Ngủ ngon nhé."

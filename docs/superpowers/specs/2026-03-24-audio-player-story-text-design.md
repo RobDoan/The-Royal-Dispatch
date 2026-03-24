@@ -1,27 +1,70 @@
-# Audio Player — Real Story Text & Duration
+# Audio Player — Real Story Text, Duration & Polling Flow
 **Date:** 2026-03-24
 **Status:** Approved
 
 ## Overview
 
-The `AudioPlayer` component currently displays mock transcript text and a hardcoded "Runtime: 7 mins" label. This spec covers replacing both with real data: the generated `story_text` from the backend, and the actual audio duration derived from the `<audio>` element.
+Two problems to solve:
+
+1. The `AudioPlayer` component displays mock transcript text and a hardcoded "Runtime: 7 mins" label — replace with real `story_text` from the backend and the actual audio duration.
+2. The current UX blocks Emma on the inbox screen for up to 40 seconds while `POST /story` completes — replace with an immediate navigation to the play page and a looping video while the story generates.
 
 ---
 
-## Problem
+## Revised UX Flow
 
-| Location | Current (mock) | Target (real) |
+```
+Emma taps princess card
+  → Inbox fires POST /story (fire-and-forget, no await)
+  → Immediately navigates to play/[princess]
+
+Play page mounts
+  → Shows looping video: Princess_Writes_Letter_For_Emma.mp4
+  → Polls GET /story/today/{princess} every 3 seconds
+  → Story ready? → stop polling → show AudioPlayer with real story text + audio
+  → 75 seconds elapsed, still no story? → show princess-specific sorry message
+```
+
+---
+
+## Play Page States
+
+| State | What Emma sees |
+|---|---|
+| **Polling** | Full-screen looping video `Princess_Writes_Letter_For_Emma.mp4`, styled with the princess's theme color |
+| **Ready** | `AudioPlayer` with real `storyText` and `audioUrl`, audio auto-plays |
+| **Timeout / Error** | Princess-specific sorry card (see below) |
+
+---
+
+## Princess-Specific Sorry Messages
+
+Shown after 75 seconds with no story, or on a hard API error:
+
+| Princess | Message |
+|---|---|
+| Elsa | "Elsa got caught in a snowstorm in Arendelle... ❄️ Try again in a little while!" |
+| Belle | "Belle is lost in her favourite book right now 📚 She'll be back soon!" |
+| Cinderella | "Cinderella is at the royal ball tonight 👠 Try again in a moment!" |
+| Ariel | "Ariel is swimming with the dolphins and can't come to the surface 🐠 Try again soon!" |
+
+The sorry card uses the princess's theme color and shows her character image.
+
+---
+
+## Polling Parameters
+
+| Parameter | Value | Rationale |
 |---|---|---|
-| `AudioPlayer` — header runtime label | `"Runtime: 7 mins"` (hardcoded) | `"Runtime: 3:42"` derived from `duration` state |
-| `AudioPlayer` — transcript area | 3 placeholder paragraphs | `storyText` prop, ElevenLabs tags stripped |
-| `AudioPlayer` — footer right timestamp | `7:00` fallback | `--:--` until audio metadata loads, then `m:ss` |
-| `AudioPlayer` — footer left timestamp | `0:xx` (broken for >60s) | `m:ss` using shared `formatTime` helper |
+| Interval | 3 seconds | Responsive without hammering the DB |
+| Timeout | 75 seconds | Backend hard-timeout is 60s; +15s buffer for network + poll timing |
+| Max polls | 25 (75 / 3) | Terminates cleanly |
 
 ---
 
-## Architecture
+## Backend Changes
 
-### New backend endpoint
+### New endpoint: `GET /story/today/{princess}`
 
 ```
 GET /story/today/{princess}
@@ -30,28 +73,19 @@ GET /story/today/{princess}
 ```
 
 - Query: `SELECT audio_url, story_text FROM stories WHERE date = today AND princess = {princess}`
-- No schema changes needed — `story_text` column already exists
-- Note: `GET /story/today` (no path param) already exists and returns all cached stories. FastAPI resolves static vs. parameterized segments correctly, so `/story/today` and `/story/today/{princess}` will not conflict. Both routes must remain. **The new `GET /story/today/{princess}` route must be registered after the existing `GET /story/today` route in `main.py`** — if registered before it, FastAPI will match `/story/today` requests to the parameterized route with `princess="today"`, silently breaking the existing endpoint.
-
-### Frontend data flow
-
-```
-play/[princess]/page.tsx mounts
-  → calls fetchStory(princess)  [new fn in lib/api.ts]
-  → shows loading spinner while fetching
-  → sets { audioUrl, storyText } from response
-  → passes both to <AudioPlayer audioUrl={audioUrl} storyText={storyText} />
-```
-
-The `audioUrl` from the API response is the authoritative source on the play page. This makes the page work correctly even on a direct load or refresh (no reliance on the `?audio=` search param for rendering). The search param that was previously used as the sole source of `audioUrl` on the play page is superseded by the API response.
+- No schema changes — `story_text` column already exists
+- **Must be registered after `GET /story/today` in `main.py`** — FastAPI resolves static segments before parameterized ones only when the static route appears first. If the new route is inserted above `GET /story/today`, requests to `/story/today` will match `{princess}="today"` and silently break the existing endpoint.
 
 ---
 
-## Component Changes
+## Frontend Changes
 
 ### `lib/api.ts`
 
-Add:
+**Existing `requestStory`** — no change to signature. The inbox calls it fire-and-forget.
+
+**New `fetchStory`:**
+
 ```ts
 export async function fetchStory(princess: Princess): Promise<{ audioUrl: string; storyText: string }> {
   const res = await fetch(`${API_URL}/story/today/${princess}`);
@@ -62,32 +96,57 @@ export async function fetchStory(princess: Princess): Promise<{ audioUrl: string
 }
 ```
 
-Note: snake_case fields from the API are mapped to camelCase at the boundary here, so all frontend code uses camelCase consistently.
+snake_case API fields are mapped to camelCase here so all frontend code stays consistent.
 
-The play page error handler distinguishes the two error codes: `STORY_NOT_FOUND` renders the soft "on its way" message; `STORY_ERROR` (server error) renders a generic retry prompt.
+### `app/[locale]/page.tsx` (Inbox)
 
-### `play/[princess]/page.tsx`
+Change `handleSelectPrincess`:
+- Fire `requestStory(id, language)` with no `await` (fire-and-forget)
+- Immediately call `router.push(/${locale}/play/${id})` — no `?audio=` param needed
+- Remove `loadingPrincess` state (no more waiting on inbox)
+- Remove the `try/catch` around the request (errors are handled on the play page)
 
-- Add `useState` for `{ audioUrl, storyText }` and `loading`
-- `useEffect` on mount: call `fetchStory(princess)`, set state
-- Pass `audioUrl` and `storyText` to `<AudioPlayer>`
-- Render a simple loading div while fetching
-- On error: render the soft error message ("Elsa's letter is on its way — try again in a moment 💌")
+### `app/[locale]/play/[princess]/page.tsx`
 
-### `AudioPlayer.tsx`
+Replace the current `useSearchParams` approach with a polling loop:
+
+- Remove `useSearchParams` (and its `<Suspense>` wrapper — no longer needed)
+- On mount: start polling `fetchStory(princess)` every 3 seconds
+- Track `elapsedSeconds` — stop and show sorry message after 75s
+- On successful fetch: set `{ audioUrl, storyText }`, stop polling, render `<AudioPlayer>`
+- On `STORY_ERROR`: stop polling immediately, show sorry message
+- Type: cast `princessId as Princess` when calling `fetchStory` (play page uses local `PrincessId = keyof typeof PRINCESS_META`, which is the same union as `Princess` from `lib/api.ts`)
+
+**Polling state machine:**
+```
+idle → polling → ready
+              ↘ timeout
+              ↘ error
+```
+
+**Loading UI (polling state):**
+```tsx
+<video
+  src="/videos/Princess_Writes_Letter_For_Emma.mp4"
+  autoPlay
+  loop
+  muted
+  playsInline
+  className="w-full h-full object-cover"
+/>
+```
+
+The video fills the screen. Apply a subtle princess-colored overlay (low opacity) using the princess's theme color so each princess feels distinct even during loading.
+
+### `components/AudioPlayer.tsx`
 
 - Add `storyText: string` to `Props`
-- Replace mock paragraphs with `storyText`, after stripping ElevenLabs audio tags
-- Fix the "Runtime" header label: format `duration` state with `formatTime`
-- Fix footer left timestamp (current position): use `formatTime(progress)` — replaces the broken `0:xx` format which fails for tracks longer than 60 seconds
-- Fix footer right timestamp (duration): use `formatTime(duration)` with `--:--` as the zero-state fallback
-- Fix: the `loadedmetadata` listener is currently registered as an anonymous inline arrow function and is never removed (pre-existing leak). To fix this, refactor it to a named reference before registering, then remove it in the cleanup: `const handleMetadata = () => setDuration(audio.duration); audio.addEventListener('loadedmetadata', handleMetadata);` — and `audio.removeEventListener('loadedmetadata', handleMetadata)` in the return. Removing an anonymous function reference silently does nothing, so this refactor is required.
-- Type note: `play/[princess]/page.tsx` uses a local `PrincessId` type (`keyof typeof PRINCESS_META`). When calling `fetchStory(princess)`, cast `princessId as Princess` (the `Princess` type exported from `lib/api.ts`) — both are the same union, just defined separately.
+- Replace the 3 mock paragraphs with `storyText`, after stripping ElevenLabs audio tags
+- Fix "Runtime" header label: use `formatTime(duration)` — shows `--:--` before metadata loads
+- Fix footer left timestamp (current position): use `formatTime(progress)` — fixes the broken `0:xx` format that fails for tracks > 60s
+- Fix footer right timestamp: use `formatTime(duration)` — replaces `7:00` hardcoded fallback
 
----
-
-## Duration Format Helper
-
+**Duration format helper:**
 ```ts
 function formatTime(seconds: number): string {
   if (!seconds || isNaN(seconds)) return '--:--';
@@ -97,36 +156,23 @@ function formatTime(seconds: number): string {
 }
 ```
 
-Used for: header "Runtime" label, footer left (progress), footer right (duration).
-
----
-
-## ElevenLabs Audio Tag Stripping
-
-The `story_text` stored in Supabase contains ElevenLabs Expressive Mode audio tags (e.g. `[PROUD]`, `[CALM]`, `[GENTLE]`). These are voice-direction markers and must be stripped before display.
-
-Strip regex: `/\[[A-Z_]+\]/g` — matches any sequence of uppercase letters and underscores inside square brackets.
-
-Apply this in a small helper before rendering:
-
+**ElevenLabs tag stripping:**
 ```ts
 function stripAudioTags(text: string): string {
   return text.replace(/\[[A-Z_]+\]/g, '').trim();
 }
 ```
 
----
+Strips patterns like `[PROUD]`, `[CALM]`, `[GENTLE]` from the story text before rendering.
 
-## Loading & Error States
-
-- **Loading**: play page shows a simple centered spinner / "Loading your letter..." message while `fetchStory` is in flight
-- **STORY_NOT_FOUND (404)**: show the soft error — "[Princess]'s letter is on its way — try again in a moment 💌"
-- **STORY_ERROR (5xx / network)**: show a generic retry prompt — "Something went wrong. Please go back and try again."
-- **Header "Runtime" zero-state**: before audio metadata loads, `formatTime(0)` returns `--:--`, so the header shows `Runtime: --:--`. This is intentional — it resolves to the real duration once the audio element fires `loadedmetadata`.
-
-## Breaking Change: `?audio=` Search Param
-
-The play page currently reads `audioUrl` from `searchParams.get('audio')`. After this change, `audioUrl` comes from the `fetchStory` API response instead. Any existing deep link or browser history entry using `?audio=...` will have that param ignored. This is an accepted break — the play page always requires a live API fetch to show story text anyway, and the `<Suspense>` boundary wrapping `useSearchParams` can be removed once the param is no longer read.
+**`loadedmetadata` listener leak fix:**
+The existing code registers `loadedmetadata` as an anonymous inline arrow — it cannot be removed. Refactor to a named reference:
+```ts
+const handleMetadata = () => setDuration(audio.duration);
+audio.addEventListener('loadedmetadata', handleMetadata);
+// in cleanup:
+audio.removeEventListener('loadedmetadata', handleMetadata);
+```
 
 ---
 
@@ -134,9 +180,10 @@ The play page currently reads `audioUrl` from `searchParams.get('audio')`. After
 
 | File | Change |
 |---|---|
-| `backend/main.py` | Add `GET /story/today/{princess}` endpoint |
+| `backend/main.py` | Add `GET /story/today/{princess}` endpoint (after existing `/story/today`) |
 | `frontend/lib/api.ts` | Add `fetchStory()` function |
-| `frontend/app/[locale]/play/[princess]/page.tsx` | Fetch story on mount, pass audioUrl + storyText to AudioPlayer |
+| `frontend/app/[locale]/page.tsx` | Fire-and-forget `requestStory`, navigate immediately |
+| `frontend/app/[locale]/play/[princess]/page.tsx` | Replace search-param approach with polling loop + video loading state |
 | `frontend/components/AudioPlayer.tsx` | Accept `storyText` prop; fix duration format; strip audio tags; fix listener leak |
 
 ---
@@ -146,3 +193,4 @@ The play page currently reads `audioUrl` from `searchParams.get('audio')`. After
 - No changes to story generation pipeline
 - No changes to the Supabase schema
 - No scroll-sync between audio progress and transcript position
+- The `?audio=` search param is removed — existing deep links with that param will load without audio until the poll resolves (acceptable)

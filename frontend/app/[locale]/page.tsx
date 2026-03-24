@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { PrincessCard, PrincessConfig } from '@/components/PrincessCard';
-import { Language } from '@/components/LanguageSelector';
-import { requestStory, Princess } from '@/lib/api';
+import { requestStory, Princess, Language } from '@/lib/api';
 
 const PRINCESSES: PrincessConfig[] = [
   {

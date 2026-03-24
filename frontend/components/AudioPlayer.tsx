@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 const AMBIENT: Record<string, { emoji: string; bg: string; glowColor: string }> = {
   elsa:       { emoji: '❄️', bg: 'from-blue-50 via-purple-50 to-blue-50',     glowColor: 'rgba(147,197,253,0.5)' },
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export function AudioPlayer({ princess, audioUrl }: Props) {
+  const t = useTranslations('app');
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
   const ambient = AMBIENT[princess.id] ?? AMBIENT['elsa'];
@@ -80,7 +82,7 @@ export function AudioPlayer({ princess, audioUrl }: Props) {
 
       <div className="flex flex-col items-center gap-4 w-full">
         <p className="text-gray-500 text-sm font-semibold">
-          Playing her royal letter to Emma...
+          {t('playing', { princess: princess.name })}
         </p>
         <button
           onClick={toggle}

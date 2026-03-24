@@ -44,6 +44,10 @@ def post_brief(req: BriefRequest):
 @app.post("/story", response_model=StoryResponse)
 def post_story(req: StoryRequest):
     story_date = req.date or date.today().isoformat()
+    db = get_supabase_client()
+    cached = db.table("stories").select("audio_url").eq("date", story_date).eq("princess", req.princess).execute()
+    if cached.data:
+        return StoryResponse(audio_url=cached.data[0]["audio_url"])
     initial_state = {
         "princess": req.princess,
         "date": story_date,

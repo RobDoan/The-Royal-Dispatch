@@ -8,6 +8,7 @@ export async function requestStory(princess: Princess, language: Language): Prom
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ princess, language }),
+    signal: AbortSignal.timeout(90_000), // 90s — pipeline can take 20–40s
   });
   if (!res.ok) throw new Error('Story generation failed');
   const data = await res.json();

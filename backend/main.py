@@ -61,7 +61,7 @@ def post_story(req: StoryRequest):
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
         future = executor.submit(royal_graph.invoke, initial_state)
         try:
-            result = future.result(timeout=15)
+            result = future.result(timeout=60)
         except concurrent.futures.TimeoutError:
             raise HTTPException(status_code=504, detail="Story generation timed out")
     return StoryResponse(audio_url=result["audio_url"])

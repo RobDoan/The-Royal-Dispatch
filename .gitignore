@@ -6,3 +6,4 @@ node_modules/
 .next/
 .superpowers/
 *.mp3
+*.egg-info/

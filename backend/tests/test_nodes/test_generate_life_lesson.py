@@ -25,9 +25,8 @@ def test_generate_life_lesson_sets_story_text_and_royal_challenge():
     with patch("backend.nodes.generate_life_lesson.get_llm", return_value=mock_llm):
         from backend.nodes.generate_life_lesson import generate_life_lesson
         result = generate_life_lesson(make_state())
-    assert result["story_text"] != ""
-    assert result["royal_challenge"] is not None
-    assert result["royal_challenge"] != ""
+    assert result["story_text"] == story  # parsed STORY: value
+    assert result["royal_challenge"] == challenge  # parsed CHALLENGE: value
 
 def test_royal_challenge_appears_in_story_text():
     challenge = "Try giving a hug to someone you love today."
@@ -41,3 +40,13 @@ def test_royal_challenge_appears_in_story_text():
         from backend.nodes.generate_life_lesson import generate_life_lesson
         result = generate_life_lesson(make_state())
     assert result["royal_challenge"] in result["story_text"]
+
+def test_generate_life_lesson_fallback_when_no_prefix():
+    raw = "Emma, today I want to tell you about kindness."
+    mock_llm = MagicMock()
+    mock_llm.invoke.return_value = MagicMock(content=raw)
+    with patch("backend.nodes.generate_life_lesson.get_llm", return_value=mock_llm):
+        from backend.nodes.generate_life_lesson import generate_life_lesson
+        result = generate_life_lesson(make_state())
+    assert result["story_text"] == raw
+    assert result["royal_challenge"] == ""

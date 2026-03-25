@@ -1,6 +1,10 @@
+import logging
+
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage, SystemMessage
 from backend.state import RoyalStateOptional
+
+logger = logging.getLogger(__name__)
 
 _llm = None
 
@@ -37,13 +41,14 @@ def generate_life_lesson(state: RoyalStateOptional) -> dict:
     persona = state["persona"]
     tone = state["tone"]
     audio_tags = " ".join(persona["audio_tags"][tone])
+    language_label = LANGUAGE_LABELS.get(state["language"], "English")
     system = SYSTEM_TEMPLATE.format(
         name=persona["name"],
         origin=persona["origin"],
         tone_style=persona["tone_style"],
         audio_tags=audio_tags,
         situation=state["situation"],
-        language_label=LANGUAGE_LABELS[state["language"]],
+        language_label=language_label,
         signature_phrase=persona["signature_phrase"],
     )
     llm = get_llm()
@@ -53,19 +58,28 @@ def generate_life_lesson(state: RoyalStateOptional) -> dict:
     ])
     raw = response.content.strip()
 
-    # Parse STORY: and CHALLENGE: sections
-    story_text = ""
+    # Parse STORY: and CHALLENGE: sections using a state-machine approach
+    story_lines = []
     royal_challenge = ""
+    in_story = False
+
     for line in raw.splitlines():
-        if line.startswith("STORY:"):
-            story_text = line[len("STORY:"):].strip()
-        elif line.startswith("CHALLENGE:"):
+        if line.startswith("CHALLENGE:"):
             royal_challenge = line[len("CHALLENGE:"):].strip()
+            in_story = False
+        elif line.startswith("STORY:"):
+            story_lines.append(line[len("STORY:"):].strip())
+            in_story = True
+        elif in_story:
+            story_lines.append(line)
+
+    story_text = " ".join(story_lines).strip()
 
     # Fallback: if parsing fails, use the whole response as story_text
     if not story_text:
         story_text = raw
     if not royal_challenge:
-        royal_challenge = story_text
+        logger.warning("generate_life_lesson: CHALLENGE: section missing from LLM output; royal_challenge set to empty string")
+        royal_challenge = ""
 
     return {"story_text": story_text, "royal_challenge": royal_challenge}

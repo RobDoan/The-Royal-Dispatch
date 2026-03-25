@@ -1,0 +1,9 @@
+frontend/
+.git
+.gitignore
+*.egg-info
+.venv
+venv
+__pycache__
+*.pyc
+.env

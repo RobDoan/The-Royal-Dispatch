@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { requestStory } from '@/lib/api';
 import { PRINCESS_META, type PrincessId } from '@/lib/princesses';
+import { ChevronRight } from 'lucide-react';
 
 export default function InboxPage() {
   const router = useRouter();
@@ -16,8 +17,8 @@ export default function InboxPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[var(--background)] font-sans">
-      <div className="px-6 pt-safe pb-6">
+    <main className="font-sans py-10">
+      <div className="px-6 pt-safe">
         <h1 className="text-3xl font-black tracking-tight text-gray-900 mb-1 pt-8">
           {t('title')}
         </h1>
@@ -41,7 +42,7 @@ export default function InboxPage() {
                 <p className="font-bold text-gray-900 text-[15px] leading-tight">{meta.name}</p>
                 <p className="text-gray-400 text-xs font-medium mt-0.5 truncate">{t(`origins.${id}`)}</p>
               </div>
-              <span className="text-gray-300 text-lg flex-shrink-0">›</span>
+              <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
             </button>
           ))}
         </div>

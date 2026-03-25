@@ -18,8 +18,8 @@ export default function StoryPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[var(--background)] font-sans">
-      <div className="px-6 pt-safe pb-6">
+    <main className="font-sans py-10">
+      <div className="pt-safe px-6">
         {/* Title removed since we have a new Header component */}
 
         <div className="grid grid-cols-2 gap-4">

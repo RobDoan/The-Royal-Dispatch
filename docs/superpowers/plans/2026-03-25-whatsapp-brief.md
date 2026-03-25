@@ -225,7 +225,7 @@ Create `n8n/whatsapp-brief.json` with the following content. Credential `id` val
         "url": "={{ $env.BACKEND_URL }}/brief",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ text: $('Sender Filter').first().json.body.entry[0].changes[0].value.messages[0].text.body }) }}",
+        "jsonBody": "={{ { text: $('Sender Filter').first().json.body.entry[0].changes[0].value.messages[0].text.body } }}",
         "options": {}
       },
       "id": "node-post-brief-text",
@@ -325,7 +325,7 @@ Create `n8n/whatsapp-brief.json` with the following content. Credential `id` val
         "url": "={{ $env.BACKEND_URL }}/brief",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ text: $('Whisper Transcribe').first().json.text }) }}",
+        "jsonBody": "={{ { text: $('Whisper Transcribe').first().json.text } }}",
         "options": {}
       },
       "id": "node-post-brief-voice",

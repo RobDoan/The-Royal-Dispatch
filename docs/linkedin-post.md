@@ -28,7 +28,7 @@ So I thought: *what if I could build something that does this for me?*
 
 ## The idea: The Royal Dispatch
 
-Every evening, I send a quick WhatsApp voice note or text — 30 seconds max:
+Every evening, I send a quick Telegram voice note or text — 30 seconds max:
 
 > *"She shared her blocks with her cousin today. But she didn't want to brush her teeth."*
 
@@ -63,7 +63,7 @@ This is what makes it feel real. ElevenLabs v3 supports audio tags like `[PROUD]
 Postgres stores the parent briefs and generated stories. Storage hosts the `.mp3` files. There's a natural cache: once a story is generated for a princess on a given day, replaying it just returns the existing audio URL — no LLM calls, no cost.
 
 **n8n**
-Handles the WhatsApp webhook. When I send a voice note, n8n transcribes it via OpenAI Whisper and posts the text to the FastAPI backend. The whole flow — voice note to story — is fully automated.
+Handles the Telegram bot integration. When I send a voice note to the bot, n8n transcribes it via OpenAI Whisper and posts the text to the FastAPI backend. The whole flow — voice note to story — is fully automated.
 
 **Next.js 16 PWA**
 The frontend is installed on Emma's iPad as a home screen app. No App Store. No login. She opens it, taps a princess, and listens. It's bilingual — a language toggle switches the entire UI and story generation between English and Tiếng Việt.
@@ -72,7 +72,7 @@ The frontend is installed on Emma's iPad as a home screen app. No App Store. No 
 
 ## What it actually looks like in use
 
-I open WhatsApp. I record 20 seconds:
+I open Telegram. I record 20 seconds:
 
 > *"Em chia đồ chơi cho bạn hôm nay. Nhưng tối vẫn không chịu đánh răng."*
 

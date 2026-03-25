@@ -19,5 +19,10 @@
       "cinderella": "The Royal Palace",
       "ariel": "Under the Sea"
     }
+  },
+  "story": {
+    "title": "Story",
+    "royalChallenge": "Your Royal Challenge",
+    "writing": "{princess} is crafting your life lesson..."
   }
 }

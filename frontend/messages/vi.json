@@ -19,5 +19,10 @@
       "cinderella": "Hoàng cung",
       "ariel": "Dưới lòng đại dương"
     }
+  },
+  "story": {
+    "title": "Chuyện kể",
+    "royalChallenge": "Thử thách Hoàng gia của em",
+    "writing": "{princess} đang viết bài học cuộc sống cho em..."
   }
 }

@@ -11,7 +11,7 @@ export default function InboxPage() {
   const t = useTranslations('app');
 
   async function handleTap(princessId: PrincessId) {
-    await requestStory(princessId, locale as 'en' | 'vi', 'daily');
+    requestStory(princessId, locale as 'en' | 'vi', 'daily');
     router.push(`/${locale}/play/${princessId}`);
   }
 

@@ -12,7 +12,7 @@ export default function StoryPage() {
   const tStory = useTranslations('story');
 
   async function handleTap(princessId: PrincessId) {
-    await requestStory(princessId, locale as 'en' | 'vi', 'life_lesson');
+    requestStory(princessId, locale as 'en' | 'vi', 'life_lesson');
     router.push(`/${locale}/story/${princessId}`);
   }
 

@@ -2,6 +2,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
+import { ParticlesBackground } from '@/components/ParticlesBackground';
 
 export default async function LocaleLayout({
   children,
@@ -15,9 +16,12 @@ export default async function LocaleLayout({
   const messages = await getMessages();
   return (
     <html lang={locale}>
-      <body>
+      <body className="bg-[#FFFDF5] bg-[radial-gradient(circle_at_center,theme(colors.white/0.5)_0%,theme(colors.orange.100/0.1)_100%)] min-h-screen">
         <NextIntlClientProvider messages={messages}>
-          {children}
+          <ParticlesBackground />
+          <div className="relative z-10">
+            {children}
+          </div>
         </NextIntlClientProvider>
       </body>
     </html>

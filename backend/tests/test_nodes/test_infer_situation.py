@@ -12,14 +12,13 @@ def make_state(brief: str) -> dict:
 
 def test_infer_situation_extracts_from_brief():
     mock_llm = MagicMock()
-    mock_llm.invoke.return_value = MagicMock(content="sharing with a sibling")
+    mock_llm.invoke.return_value = MagicMock(content="Sharing With A Sibling.")  # mixed case + period
     with patch("backend.nodes.infer_situation.get_llm", return_value=mock_llm):
         from backend.nodes.infer_situation import infer_situation
         result = infer_situation(make_state("Emma had trouble sharing crayons with her brother"))
     situation = result["situation"]
-    assert isinstance(situation, str)
+    assert situation == "sharing with a sibling"  # normalized: lowercased, period removed
     assert len(situation.split()) <= 8
-    assert situation.strip() != ""
 
 def test_infer_situation_uses_fallback_for_empty_brief():
     mock_llm = MagicMock()
@@ -29,10 +28,10 @@ def test_infer_situation_uses_fallback_for_empty_brief():
         result = infer_situation(make_state("__fallback__"))
     assert result["situation"] in ALLOWED_FALLBACKS
 
-def test_infer_situation_uses_fallback_for_non_teachable_brief():
+def test_infer_situation_clamps_invalid_response_for_short_brief():
     mock_llm = MagicMock()
-    mock_llm.invoke.return_value = MagicMock(content="courage")
+    mock_llm.invoke.return_value = MagicMock(content="something weird and invalid")  # NOT in ALLOWED_FALLBACKS
     with patch("backend.nodes.infer_situation.get_llm", return_value=mock_llm):
         from backend.nodes.infer_situation import infer_situation
-        result = infer_situation(make_state("Emma ate breakfast and watched TV"))
-    assert result["situation"] in ALLOWED_FALLBACKS
+        result = infer_situation(make_state("a b c"))  # 3 words < 5 → triggers fallback
+    assert result["situation"] == "kindness"  # clamped to first fallback

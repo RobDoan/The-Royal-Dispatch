@@ -18,7 +18,10 @@ export function Header() {
     <header className="fixed top-0 left-0 right-0 z-50 pt-safe-top bg-white border-b-0">
       <div className="px-5 pb-3 flex items-center justify-between">
         <div className="flex flex-col mt-2">
-          <h2 className="text-[#FF85A1] drop-shadow-sm text-2xl font-black tracking-tight" style={{ fontFamily: '"Quicksand", sans-serif' }}>
+          <h2
+            className="text-transparent bg-clip-text bg-gradient-to-br from-[#FF85A1] via-[#FFA3A3] to-[#FFB86C] drop-shadow-[0_2px_2px_rgba(255,133,161,0.4)] text-2xl font-black tracking-tight transition-transform hover:scale-105"
+            style={{ fontFamily: '"Quicksand", sans-serif' }}
+          >
             {t('title')}
           </h2>
         </div>
@@ -29,7 +32,7 @@ export function Header() {
           </button>
         </div>
       </div>
-      
+
       {/* Scalloped Wavy Bottom edge */}
       <div className="absolute top-full left-0 right-0 w-full overflow-hidden leading-[0]">
         <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none" className="block w-full h-[12px] fill-white drop-shadow-sm">

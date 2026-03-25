@@ -26,7 +26,7 @@ def synthesize_voice(state: RoyalStateOptional) -> dict:
     )
     audio_bytes = b"".join(audio_chunks)
 
-    story_type = state.get("story_type", "daily")
+    story_type = state["story_type"]
     suffix = f"-{story_type}" if story_type != "daily" else ""
     filename = f"{state['date']}-{state['princess']}-{state['language']}{suffix}.mp3"
     supabase = get_supabase_client()

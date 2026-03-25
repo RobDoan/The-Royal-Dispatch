@@ -26,3 +26,5 @@ def test_store_result_upserts_to_supabase(complete_state, mocker):
     call_kwargs = mock_client.table.return_value.upsert.call_args[0][0]
     assert call_kwargs["princess"] == "elsa"
     assert call_kwargs["audio_url"] == "https://example.com/audio.mp3"
+    assert call_kwargs["story_type"] == "daily"
+    assert call_kwargs["royal_challenge"] is None

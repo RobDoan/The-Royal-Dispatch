@@ -1,7 +1,7 @@
-from backend.state import RoyalState
+from backend.state import RoyalStateOptional
 from backend.db.client import get_supabase_client
 
-def fetch_brief(state: RoyalState) -> dict:
+def fetch_brief(state: RoyalStateOptional) -> dict:
     client = get_supabase_client()
     today = state["date"]
     result = (

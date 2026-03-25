@@ -1,6 +1,6 @@
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage, SystemMessage
-from backend.state import RoyalState
+from backend.state import RoyalStateOptional
 
 _llm = None
 
@@ -32,7 +32,7 @@ TONE_INSTRUCTIONS = {
 
 LANGUAGE_LABELS = {"en": "English", "vi": "Vietnamese (Tiếng Việt)"}
 
-def generate_story(state: RoyalState) -> dict:
+def generate_story(state: RoyalStateOptional) -> dict:
     if state["brief"] == "__fallback__":
         lang = state["language"]
         return {"story_text": state["persona"]["fallback_letter"][lang]}

@@ -1,6 +1,6 @@
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage, SystemMessage
-from backend.state import RoyalState
+from backend.state import RoyalStateOptional
 
 _llm = None
 
@@ -16,7 +16,7 @@ respond with exactly one word: either "praise" or "habit".
 - "habit": the child struggled with a habit that needs gentle modeling
 Respond with only the single word."""
 
-def classify_tone(state: RoyalState) -> dict:
+def classify_tone(state: RoyalStateOptional) -> dict:
     if state["brief"] == "__fallback__":
         return {"tone": "praise"}
     llm = get_llm()

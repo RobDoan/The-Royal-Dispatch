@@ -8,6 +8,7 @@ interface Props {
   princess: { id: string; name: string; emoji: string; origin?: string };
   audioUrl: string;
   storyText: string;
+  royalChallenge?: string;
 }
 
 // duration is undefined until loadedmetadata fires; progress is always a number (starts at 0).
@@ -23,8 +24,9 @@ function stripAudioTags(text: string): string {
   return text.replace(/\[[A-Z_]+\]/g, '').replace(/\s{2,}/g, ' ').trim();
 }
 
-export function AudioPlayer({ princess, audioUrl, storyText }: Props) {
+export function AudioPlayer({ princess, audioUrl, storyText, royalChallenge }: Props) {
   const t = useTranslations('app');
+  const tStory = useTranslations('story');
   const router = useRouter();
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
@@ -149,6 +151,16 @@ export function AudioPlayer({ princess, audioUrl, storyText }: Props) {
              <div className="text-[17px] text-gray-700 leading-relaxed space-y-7 font-medium pb-8 w-full max-w-prose">
                <p>{stripAudioTags(storyText)}</p>
              </div>
+             {royalChallenge && (
+               <div className="mt-6 mb-4 border-2 border-amber-300 rounded-2xl bg-amber-50 p-5">
+                 <p className="text-amber-700 font-extrabold text-sm uppercase tracking-wider mb-2">
+                   <span aria-hidden="true">👑 </span>{tStory('royalChallenge')}
+                 </p>
+                 <p className="text-gray-800 font-semibold text-[16px] leading-relaxed italic">
+                   {royalChallenge}
+                 </p>
+               </div>
+             )}
           </div>
 
           {/* Sticky Player Footer */}

@@ -58,4 +58,28 @@ describe('AudioPlayer', () => {
     expect(dashes.length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/Runtime:.*--:--/)).toBeInTheDocument();
   });
+
+  it('renders Royal Challenge card when royalChallenge prop is provided', () => {
+    renderWithIntl(
+      <AudioPlayer
+        princess={mockPrincess}
+        audioUrl="https://example.com/test.mp3"
+        storyText="Once in Arendelle..."
+        royalChallenge="Try sharing one favourite thing today."
+      />
+    );
+    expect(screen.getByText('Your Royal Challenge')).toBeInTheDocument();
+    expect(screen.getByText('Try sharing one favourite thing today.')).toBeInTheDocument();
+  });
+
+  it('does not render Royal Challenge card when royalChallenge is not provided', () => {
+    renderWithIntl(
+      <AudioPlayer
+        princess={mockPrincess}
+        audioUrl="https://example.com/test.mp3"
+        storyText="Dear Emma..."
+      />
+    );
+    expect(screen.queryByText('Your Royal Challenge')).not.toBeInTheDocument();
+  });
 });

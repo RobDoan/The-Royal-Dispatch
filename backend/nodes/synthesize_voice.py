@@ -1,6 +1,6 @@
 import os
 from elevenlabs.client import ElevenLabs
-from backend.state import RoyalState
+from backend.state import RoyalStateOptional
 from backend.db.client import get_supabase_client
 
 _elevenlabs = None
@@ -13,7 +13,7 @@ def get_elevenlabs_client() -> ElevenLabs:
 
 BUCKET = os.environ.get("SUPABASE_STORAGE_BUCKET", "royal-audio")
 
-def synthesize_voice(state: RoyalState) -> dict:
+def synthesize_voice(state: RoyalStateOptional) -> dict:
     client = get_elevenlabs_client()
     # NOTE: Use "eleven_v3" for ElevenLabs v3 Expressive Mode (supports audio tags).
     # Use "eleven_multilingual_v2" if v3 is not yet available on your plan.
@@ -26,7 +26,9 @@ def synthesize_voice(state: RoyalState) -> dict:
     )
     audio_bytes = b"".join(audio_chunks)
 
-    filename = f"{state['date']}-{state['princess']}-{state['language']}.mp3"
+    story_type = state.get("story_type", "daily")
+    suffix = f"-{story_type}" if story_type != "daily" else ""
+    filename = f"{state['date']}-{state['princess']}-{state['language']}{suffix}.mp3"
     supabase = get_supabase_client()
     supabase.storage.from_(BUCKET).upload(
         path=filename,

@@ -1,0 +1,222 @@
+{
+  "name": "Telegram Brief",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message"],
+        "additionalFields": {}
+      },
+      "id": "node-telegram-trigger",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300],
+      "webhookId": "royal-dispatch-telegram",
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-cred-id",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.message.chat.id }}",
+              "rightValue": "={{ parseInt($env.PARENT_CHAT_ID) }}",
+              "operator": { "type": "number", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "node-sender-filter",
+      "name": "Sender Filter",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.text }}",
+                    "operator": { "type": "string", "operation": "exists" }
+                  }
+                ]
+              },
+              "outputKey": "text"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.voice }}",
+                    "operator": { "type": "object", "operation": "exists" }
+                  }
+                ]
+              },
+              "outputKey": "voice"
+            }
+          ]
+        },
+        "fallbackOutput": "none"
+      },
+      "id": "node-type-switch",
+      "name": "Message Type Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.BACKEND_URL }}/brief",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { text: $json.message.text } }}",
+        "options": {}
+      },
+      "id": "node-post-brief-text",
+      "name": "Post Brief (text)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 180]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/getFile?file_id=' + $json.message.voice.file_id }}",
+        "options": {}
+      },
+      "id": "node-get-file-path",
+      "name": "Get File Path",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 420]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://api.telegram.org/file/bot' + $env.TELEGRAM_BOT_TOKEN + '/' + $json.result.file_path }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "node-download-binary",
+      "name": "Download File Binary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 420]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/audio/transcriptions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data",
+              "options": {
+                "filename": "voice.oga",
+                "contentType": "audio/ogg"
+              }
+            },
+            {
+              "name": "model",
+              "value": "whisper-1"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-whisper",
+      "name": "Whisper Transcribe",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 420],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "openai-cred-id",
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.BACKEND_URL }}/brief",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { text: $('Whisper Transcribe').first().json.text } }}",
+        "options": {}
+      },
+      "id": "node-post-brief-voice",
+      "name": "Post Brief (voice)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 420]
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [{ "node": "Sender Filter", "type": "main", "index": 0 }]
+      ]
+    },
+    "Sender Filter": {
+      "main": [
+        [{ "node": "Message Type Switch", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Message Type Switch": {
+      "main": [
+        [{ "node": "Post Brief (text)", "type": "main", "index": 0 }],
+        [{ "node": "Get File Path", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get File Path": {
+      "main": [
+        [{ "node": "Download File Binary", "type": "main", "index": 0 }]
+      ]
+    },
+    "Download File Binary": {
+      "main": [
+        [{ "node": "Whisper Transcribe", "type": "main", "index": 0 }]
+      ]
+    },
+    "Whisper Transcribe": {
+      "main": [
+        [{ "node": "Post Brief (voice)", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "instanceId": "royal-dispatch"
+  },
+  "id": "royal-dispatch-telegram-brief",
+  "tags": []
+}

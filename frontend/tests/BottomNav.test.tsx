@@ -17,8 +17,10 @@ it('renders Inbox and Story tabs', () => {
   expect(screen.getByText('Story')).toBeInTheDocument();
 });
 
-it('marks Inbox as active when on /en/inbox', () => {
+it('marks Inbox as active and Story as inactive when on /en/inbox', () => {
   render(<BottomNav locale="en" />);
   const inboxLink = screen.getByText('Inbox').closest('a');
+  const storyLink = screen.getByText('Story').closest('a');
   expect(inboxLink?.className).toContain('text-[var(--color-primary-orange)]');
+  expect(storyLink?.className).toContain('text-gray-400');
 });

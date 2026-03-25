@@ -3,15 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { requestStory } from '@/lib/api';
-
-const PRINCESS_META = {
-  elsa:       { name: 'Queen Elsa',  emoji: '❄️', origin: 'Kingdom of Arendelle' },
-  belle:      { name: 'Belle',       emoji: '📚', origin: 'The Enchanted Castle' },
-  cinderella: { name: 'Cinderella',  emoji: '👠', origin: 'The Royal Palace' },
-  ariel:      { name: 'Ariel',       emoji: '🐠', origin: 'Under the Sea' },
-} as const;
-
-type PrincessId = keyof typeof PRINCESS_META;
+import { PRINCESS_META, type PrincessId } from '@/lib/princesses';
 
 export default function InboxPage() {
   const router = useRouter();

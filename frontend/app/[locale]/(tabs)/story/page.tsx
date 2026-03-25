@@ -1,21 +1,15 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { requestStory } from '@/lib/api';
-
-const PRINCESS_META = {
-  elsa:       { name: 'Queen Elsa',  emoji: '❄️', origin: 'Kingdom of Arendelle' },
-  belle:      { name: 'Belle',       emoji: '📚', origin: 'The Enchanted Castle' },
-  cinderella: { name: 'Cinderella',  emoji: '👠', origin: 'The Royal Palace' },
-  ariel:      { name: 'Ariel',       emoji: '🐠', origin: 'Under the Sea' },
-} as const;
-
-type PrincessId = keyof typeof PRINCESS_META;
+import { PRINCESS_META, type PrincessId } from '@/lib/princesses';
 
 export default function StoryPage() {
   const router = useRouter();
   const locale = useLocale();
+  const t = useTranslations('app');
+  const tStory = useTranslations('story');
 
   async function handleTap(princessId: PrincessId) {
     await requestStory(princessId, locale as 'en' | 'vi', 'life_lesson');
@@ -26,9 +20,9 @@ export default function StoryPage() {
     <main className="min-h-screen bg-[var(--background)] font-sans">
       <div className="px-6 pt-safe pb-6">
         <h1 className="text-3xl font-black tracking-tight text-gray-900 mb-1 pt-8">
-          Story
+          {tStory('title')}
         </h1>
-        <p className="text-gray-500 text-sm font-medium mb-6">Choose a princess for your life lesson</p>
+        <p className="text-gray-500 text-sm font-medium mb-6">{t('subtitle')}</p>
 
         <div className="grid grid-cols-2 gap-4">
           {(Object.entries(PRINCESS_META) as [PrincessId, typeof PRINCESS_META[PrincessId]][]).map(([id, meta]) => (
@@ -44,7 +38,7 @@ export default function StoryPage() {
               />
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3 text-left">
                 <p className="text-white font-bold text-sm leading-tight">{meta.name}</p>
-                <p className="text-white/70 text-[10px] font-medium mt-0.5">{meta.origin}</p>
+                <p className="text-white/70 text-[10px] font-medium mt-0.5">{t(`origins.${id}`)}</p>
               </div>
             </button>
           ))}

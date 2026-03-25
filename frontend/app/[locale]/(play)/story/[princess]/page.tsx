@@ -5,22 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { AudioPlayer } from '@/components/AudioPlayer';
 import { fetchStory, Princess } from '@/lib/api';
-
-const PRINCESS_META = {
-  elsa:       { name: 'Queen Elsa',  emoji: '❄️',  origin: 'Kingdom of Arendelle' },
-  belle:      { name: 'Belle',       emoji: '📚',  origin: 'The Enchanted Castle' },
-  cinderella: { name: 'Cinderella',  emoji: '👠',  origin: 'The Royal Palace' },
-  ariel:      { name: 'Ariel',       emoji: '🐠',  origin: 'Under the Sea' },
-} as const;
-
-const PRINCESS_OVERLAY: Record<string, string> = {
-  elsa:       'rgba(147, 197, 253, 0.25)',
-  belle:      'rgba(252, 211, 77, 0.25)',
-  cinderella: 'rgba(249, 168, 212, 0.25)',
-  ariel:      'rgba(110, 231, 183, 0.25)',
-};
-
-type PrincessId = keyof typeof PRINCESS_META;
+import { PRINCESS_META, PRINCESS_OVERLAY, type PrincessId } from '@/lib/princesses';
 type PageState = 'polling' | 'ready' | 'timeout' | 'error';
 
 const POLL_INTERVAL_MS = 3000;

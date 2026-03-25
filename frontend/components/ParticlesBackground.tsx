@@ -47,7 +47,7 @@ export function ParticlesBackground() {
           },
           particles: {
             color: {
-              value: ["#FFD700", "#FFFFFF", "#FF85A1"],
+              value: ["#FFFFFF", "#FFB6C1", "#87CEEB", "#E6E6FA"],
             },
             links: {
               enable: false,

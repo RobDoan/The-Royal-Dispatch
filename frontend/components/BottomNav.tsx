@@ -24,7 +24,7 @@ export function BottomNav({ locale }: Props) {
 
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 drop-shadow-[0_15px_30px_rgba(0,0,0,0.15)] pb-[env(safe-area-inset-bottom)] w-11/12 max-w-sm">
-      <nav className="bg-[#FDFCF0] w-full flex items-center justify-around rounded-[40px] p-2.5 h-[96px] shadow-[10px_10px_20px_rgba(0,0,0,0.05),inset_-8px_-8px_12px_rgba(0,0,0,0.05),inset_8px_8px_12px_rgba(255,255,255,1)] border border-white/60">
+      <nav className="bg-[#FFFFFF] w-full flex items-center justify-around rounded-[40px] p-2.5 h-[96px] shadow-[10px_10px_20px_rgba(0,0,0,0.05),inset_-8px_-8px_12px_rgba(0,0,0,0.05),inset_8px_8px_12px_rgba(255,255,255,1)] border border-white/60">
         {tabs.map((tab) => {
           const active = pathname.startsWith(tab.href);
           return (

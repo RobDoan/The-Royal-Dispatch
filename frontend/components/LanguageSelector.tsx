@@ -1,5 +1,13 @@
 'use client';
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 export type Language = 'en' | 'vi';
 
 interface Props {
@@ -9,16 +17,14 @@ interface Props {
 
 export function LanguageSelector({ value, onChange }: Props) {
   return (
-    <div className="relative inline-block">
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value as Language)}
-        className="appearance-none bg-purple-100 border-2 border-purple-300 rounded-xl px-3 py-1.5 pr-7 text-sm font-bold text-purple-800 cursor-pointer outline-none focus:ring-2 focus:ring-purple-400"
-      >
-        <option value="en">🇬🇧 English</option>
-        <option value="vi">🇻🇳 Tiếng Việt</option>
-      </select>
-      <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-purple-600 text-xs">▼</div>
-    </div>
+    <Select value={value} onValueChange={(val) => onChange(val as Language)}>
+      <SelectTrigger className="w-[100px] h-8 bg-white/40 backdrop-blur-md border border-white/40 rounded-full font-bold text-gray-800 focus:ring-2 focus:ring-[#F47F60] data-[state=open]:ring-[#F47F60] shadow-sm">
+        <SelectValue placeholder="Language" />
+      </SelectTrigger>
+      <SelectContent className="rounded-xl border border-gray-100 shadow-md z-[100]">
+        <SelectItem value="en" className="font-medium cursor-pointer rounded-lg hover:bg-gray-50 focus:bg-gray-50">🇬🇧 EN</SelectItem>
+        <SelectItem value="vi" className="font-medium cursor-pointer rounded-lg hover:bg-gray-50 focus:bg-gray-50">🇻🇳 VI</SelectItem>
+      </SelectContent>
+    </Select>
   );
 }

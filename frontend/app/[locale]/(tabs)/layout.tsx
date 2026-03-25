@@ -1,4 +1,5 @@
 import { BottomNav } from '@/components/BottomNav';
+import { Header } from '@/components/Header';
 
 interface Props {
   children: React.ReactNode;
@@ -8,7 +9,8 @@ interface Props {
 export default async function TabsLayout({ children, params }: Props) {
   const { locale } = await params;
   return (
-    <div className="pb-16">
+    <div className="pb-32 pt-20">
+      <Header />
       {children}
       <BottomNav locale={locale} />
     </div>

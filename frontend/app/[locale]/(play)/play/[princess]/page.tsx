@@ -111,7 +111,7 @@ export default function PlayPage() {
           {sorryMessage}
         </p>
         <button
-          onClick={() => router.push(`/${locale}`)}
+          onClick={() => router.push(`/${locale}/inbox`)}
           className="mt-2 px-8 py-3 bg-black text-white font-bold rounded-full text-sm tracking-widest uppercase"
         >
           {t('goBack')}

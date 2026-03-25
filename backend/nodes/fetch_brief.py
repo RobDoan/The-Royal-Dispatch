@@ -8,9 +8,10 @@ def fetch_brief(state: RoyalStateOptional) -> dict:
         client.table("briefs")
         .select("text")
         .eq("date", today)
-        .maybe_single()
         .execute()
     )
     if result.data:
-        return {"brief": result.data["text"]}
+        merged_brief = "\n\n".join(item["text"] for item in result.data if item.get("text"))
+        if merged_brief:
+            return {"brief": merged_brief}
     return {"brief": "__fallback__"}

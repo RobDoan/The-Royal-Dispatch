@@ -7,7 +7,7 @@
 
 A single n8n workflow that receives Telegram messages from the parent via a native Telegram Trigger node, filters by sender chat ID, handles text and voice messages, transcribes voice notes via OpenAI Whisper, and posts the brief text to the FastAPI `POST /brief` endpoint.
 
-Replaces the WhatsApp Cloud API design with a simpler Telegram Bot API integration requiring no business account, no webhook verification handshake, and no two-step media download.
+Replaces the WhatsApp Cloud API design with a simpler Telegram Bot API integration requiring no business account, no webhook verification handshake, and no business approval process.
 
 ---
 
@@ -16,18 +16,18 @@ Replaces the WhatsApp Cloud API design with a simpler Telegram Bot API integrati
 ```
 [Telegram Trigger]
         │
-[Sender Filter]       ──── not parent ──→ exit silently
+[Sender Filter]         ──── not parent ──→ exit silently
         │ match
 [Message Type Switch]
         ├── text  → [Post to /brief]
-        └── voice → [Download Voice File] → [Whisper Transcribe] → [Post to /brief]
+        └── voice → [Get File Path] → [Download File Binary] → [Whisper Transcribe] → [Post to /brief]
 ```
 
 ### Nodes
 
 1. **Telegram Trigger** — n8n native Telegram Trigger node. Connects to the bot via long polling. No public URL or webhook registration required. Fires on every incoming message and outputs a clean `message` object. Non-message events (joins, leaves, etc.) are not emitted by this node.
 
-2. **Sender Filter** — IF node checking `{{ $json.message.chat.id }}` equals `{{ $env.PARENT_CHAT_ID }}` (integer comparison). Exits silently if no match.
+2. **Sender Filter** — IF node checking `{{ $json.message.chat.id }}` equals `{{ parseInt($env.PARENT_CHAT_ID) }}`. Use **Number** comparison type in the n8n IF node (not string), because `$env` variables are always strings while `chat.id` from Telegram is an integer. Exits silently if no match.
 
 3. **Message Type Switch** — Switch node routing on message content:
    - `message.text` exists → text path (output 0)
@@ -36,30 +36,33 @@ Replaces the WhatsApp Cloud API design with a simpler Telegram Bot API integrati
 
 4. **Post to /brief** (text path) — HTTP Request node:
    - Method: `POST`
-   - URL: `{{ $env.BACKEND_URL }}/brief`
-   - Body (JSON): `{ "text": $json.message.text }`
+   - URL: `={{ $env.BACKEND_URL }}/brief`
+   - Body (JSON): `{ "text": "{{ $json.message.text }}" }`
 
-5. **Download Voice File** — HTTP Request node (single step):
+5. **Get File Path** — HTTP Request node (first step of Telegram's two-step voice download):
    - Method: `GET`
    - URL: `=https://api.telegram.org/bot{{ $credentials.telegramApi.accessToken }}/getFile?file_id={{ $json.message.voice.file_id }}`
-   - First call returns `result.file_path`; second call fetches binary:
-     `=https://api.telegram.org/file/bot{{ $credentials.telegramApi.accessToken }}/{{ $node["Download Voice File"].json.result.file_path }}`
-   - In practice implemented as two HTTP Request nodes: **Get File Path** and **Download File Binary** (response format: file/binary).
+   - Returns JSON: `{ "result": { "file_path": "voice/file_123.oga" } }`
 
-6. **Whisper Transcribe** — HTTP Request node:
+6. **Download File Binary** — HTTP Request node (second step):
+   - Method: `GET`
+   - URL: `=https://api.telegram.org/file/bot{{ $credentials.telegramApi.accessToken }}/{{ $json.result.file_path }}`
+   - Response format: **Binary** (saves to buffer for upload)
+
+7. **Whisper Transcribe** — HTTP Request node:
    - Method: `POST`
    - URL: `https://api.openai.com/v1/audio/transcriptions`
    - Content-Type: `multipart/form-data`
    - Form fields:
      - `file`: binary from previous node, filename `voice.oga`, MIME type `audio/ogg`
      - `model`: `whisper-1`
-   - Auth: **OpenAI** n8n Credential (Header Auth: `Authorization: Bearer <key>`)
+   - Auth: **OpenAI** n8n Credential (Header Auth type with `Authorization: Bearer <key>`). The Whisper node is a generic HTTP Request node, so it cannot use n8n's built-in OpenAI credential type — a raw Header Auth credential is required here.
    - Returns JSON: `{"text": "..."}`
 
-7. **Post to /brief** (voice path) — HTTP Request node:
+8. **Post to /brief** (voice path) — HTTP Request node:
    - Method: `POST`
-   - URL: `{{ $env.BACKEND_URL }}/brief`
-   - Body (JSON): `{ "text": $node["Whisper Transcribe"].json.text }`
+   - URL: `={{ $env.BACKEND_URL }}/brief`
+   - Body (JSON): `{ "text": "{{ $node["Whisper Transcribe"].json.text }}" }`
 
 All logic lives in a single exportable file: `n8n/telegram-brief.json`.
 
@@ -69,24 +72,24 @@ All logic lives in a single exportable file: `n8n/telegram-brief.json`.
 
 ### n8n Credentials
 
-| Credential name | Type | Value |
+| Credential name | Type | Notes |
 |---|---|---|
-| `Telegram Bot` | Telegram API | Bot token from @BotFather |
-| `OpenAI` | Header Auth | `Authorization: Bearer <openai-api-key>` |
+| `Telegram Bot` | Telegram API | Bot token from @BotFather. Used by the Telegram Trigger node and referenced in URL expressions for file download. |
+| `OpenAI` | Header Auth | Header name: `Authorization`, value: `Bearer <openai-api-key>`. Used by the Whisper Transcribe node. A raw Header Auth is used because the Whisper node is a generic HTTP Request node. |
 
 ### n8n Environment Variables
 
-| Variable | Description |
-|---|---|
-| `PARENT_CHAT_ID` | Parent's Telegram chat ID with the bot (integer, e.g. `123456789`). Find by messaging the bot then calling `https://api.telegram.org/bot<token>/getUpdates` |
-| `BACKEND_URL` | Backend base URL (e.g. `http://backend:8000` for Docker Compose) |
+| Variable | Type | Description |
+|---|---|---|
+| `PARENT_CHAT_ID` | String (parsed as integer at runtime) | Parent's Telegram chat ID with the bot (e.g. `"123456789"`). Find by messaging the bot then calling `https://api.telegram.org/bot<token>/getUpdates` and reading `result[0].message.chat.id`. |
+| `BACKEND_URL` | String | Backend base URL (e.g. `http://backend:8000` for Docker Compose) |
 
-### Bot Setup (one-time)
+### Bot Setup (one-time, ~2 minutes)
 
 1. Message **@BotFather** → `/newbot` → follow prompts → receive bot token
 2. Message your new bot once to create the chat
 3. Call `https://api.telegram.org/bot<token>/getUpdates` to find your `chat.id`
-4. Set `PARENT_CHAT_ID` to that integer value
+4. Set `PARENT_CHAT_ID` to that integer value (as a string in the env block)
 
 No Meta dashboard, no webhook registration, no business verification required.
 
@@ -98,40 +101,36 @@ No Meta dashboard, no webhook registration, no business verification required.
 |---|---|
 | Message from unknown sender | Sender Filter exits silently — no error |
 | Unsupported message type (photo, sticker, document, etc.) | Switch fallback exits cleanly |
+| `/brief` call failure (text path) | Execution marked failed; brief not stored; parent resends |
 | Get File Path failure | Execution marked failed; parent resends voice note |
 | Download File Binary failure | Execution marked failed; parent resends voice note |
 | Whisper transcription failure | Execution marked failed; parent resends voice note |
-| `/brief` call failure | Execution marked failed; brief not stored; parent resends |
+| `/brief` call failure (voice path) | Execution marked failed; brief not stored; parent resends |
 
 No automatic retries. The workflow is idempotent — duplicate rows in Supabase are acceptable. Manual resend is the recovery path.
 
-No guard node needed for status updates: the Telegram Trigger native node only emits actual message events, not delivery receipts or other non-message updates.
+No guard node is needed for non-message events: the Telegram Trigger native node only emits actual message events, not delivery receipts or status updates.
 
 ---
 
 ## Files Produced
 
 - **`n8n/telegram-brief.json`** — Importable n8n workflow with all nodes, credentials referenced by name.
-- **`n8n/README.md`** — Updated setup instructions covering:
-  - Bot creation via @BotFather
-  - Finding `PARENT_CHAT_ID` via `getUpdates`
-  - Docker Compose env var configuration
-  - n8n credential setup
-  - Workflow import and activation steps
-  - Local test payloads (text and voice routing)
-  - End-to-end verification steps
-
-The previous `n8n/whatsapp-brief.json` is superseded by `n8n/telegram-brief.json`.
+- **`n8n/README.md`** — Replaces the previous WhatsApp README. Covers bot creation, finding `PARENT_CHAT_ID`, Docker Compose env var configuration, n8n credential setup, workflow import and activation, local test steps, and end-to-end verification.
+- **`n8n/whatsapp-brief.json`** — Delete this file as part of this task. It is superseded by `telegram-brief.json`.
 
 ---
 
 ## Testing
 
-**Local:**
-Use n8n's "Test step" on the Telegram Trigger node — send a real message from the parent's Telegram account to the bot while the workflow is open in the editor. Step through nodes visually. The voice path requires a real bot token and file ID for the download step; routing logic is fully verifiable with text messages.
+**Local (text path):**
+In the n8n editor, click "Test step" on the Telegram Trigger node, then send a real text message from the parent's Telegram account to the bot. Step through Sender Filter, Switch, and Post to /brief nodes visually. Verify the row appears in Supabase.
+
+**Local (voice path — limited):**
+The voice path requires a live bot token and real voice file ID. There is no mock path for the download steps. To verify routing only: send a real voice note to the bot in test mode — the workflow will route correctly through Get File Path and fail at the download step if credentials aren't configured. Full voice path verification requires an activated workflow with real credentials.
 
 **End-to-end:**
-Activate the workflow, send a text message from the parent's phone → verify row in Supabase `briefs` table. Send a voice note → verify transcribed text in the table.
+Activate the workflow, send a text message → verify row in Supabase `briefs` table. Send a voice note → verify transcribed text in the table.
 
 ---
 

@@ -2,7 +2,7 @@ import os
 import concurrent.futures
 from datetime import date
 from typing import Literal
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -16,7 +16,7 @@ app = FastAPI(title="Royal Dispatch API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # tighten in production
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -27,10 +27,16 @@ class BriefRequest(BaseModel):
 class StoryRequest(BaseModel):
     princess: Literal["elsa", "belle", "cinderella", "ariel"]
     language: Literal["en", "vi"] = "en"
-    date: str | None = None  # defaults to today
+    story_type: Literal["daily", "life_lesson"] = "daily"
+    date: str | None = None
 
 class StoryResponse(BaseModel):
     audio_url: str
+
+class StoryDetailResponse(BaseModel):
+    audio_url: str
+    story_text: str
+    royal_challenge: str | None
 
 @app.post("/brief")
 def post_brief(req: BriefRequest):
@@ -45,7 +51,14 @@ def post_brief(req: BriefRequest):
 def post_story(req: StoryRequest):
     story_date = req.date or date.today().isoformat()
     db = get_supabase_client()
-    cached = db.table("stories").select("audio_url").eq("date", story_date).eq("princess", req.princess).execute()
+    cached = (
+        db.table("stories")
+        .select("audio_url")
+        .eq("date", story_date)
+        .eq("princess", req.princess)
+        .eq("story_type", req.story_type)
+        .execute()
+    )
     if cached.data:
         return StoryResponse(audio_url=cached.data[0]["audio_url"])
     initial_state = {
@@ -54,6 +67,8 @@ def post_story(req: StoryRequest):
         "brief": "",
         "tone": "",
         "persona": {},
+        "story_type": req.story_type,
+        "situation": "",
         "story_text": "",
         "audio_url": "",
         "language": req.language,
@@ -70,20 +85,36 @@ def post_story(req: StoryRequest):
 def get_today_stories():
     today = date.today().isoformat()
     client = get_supabase_client()
-    result = client.table("stories").select("princess,audio_url").eq("date", today).execute()
+    result = (
+        client.table("stories")
+        .select("princess,audio_url")
+        .eq("date", today)
+        .eq("story_type", "daily")
+        .execute()
+    )
     cached = {row["princess"]: row["audio_url"] for row in (result.data or [])}
     return {"date": today, "cached": cached}
 
-class StoryDetailResponse(BaseModel):
-    audio_url: str
-    story_text: str
-
 @app.get("/story/today/{princess}", response_model=StoryDetailResponse)
-def get_today_story_for_princess(princess: str):
+def get_today_story_for_princess(
+    princess: str,
+    type: str = Query(default="daily"),
+):
     today = date.today().isoformat()
     client = get_supabase_client()
-    result = client.table("stories").select("audio_url,story_text").eq("date", today).eq("princess", princess).execute()
+    result = (
+        client.table("stories")
+        .select("audio_url,story_text,royal_challenge")
+        .eq("date", today)
+        .eq("princess", princess)
+        .eq("story_type", type)
+        .execute()
+    )
     if not result.data:
         raise HTTPException(status_code=404, detail="Story not found for today")
     row = result.data[0]
-    return StoryDetailResponse(audio_url=row["audio_url"], story_text=row["story_text"])
+    return StoryDetailResponse(
+        audio_url=row["audio_url"],
+        story_text=row["story_text"],
+        royal_challenge=row.get("royal_challenge"),
+    )

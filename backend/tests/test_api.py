@@ -21,7 +21,7 @@ def test_post_story_triggers_graph_and_returns_audio_url(mocker):
     mock_graph = MagicMock()
     mock_graph.invoke.return_value = {"audio_url": "https://example.com/audio.mp3"}
     mock_supabase = MagicMock()
-    mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
+    mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
     with patch("backend.main.royal_graph", mock_graph), \
          patch("backend.main.get_supabase_client", return_value=mock_supabase):
         from backend.main import app
@@ -42,7 +42,7 @@ def test_post_story_rejects_unknown_princess(mocker):
 
 def test_post_story_returns_cached_audio_url_without_running_graph(mocker):
     mock_supabase = MagicMock()
-    mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
+    mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
         {"audio_url": "https://example.com/cached-elsa.mp3"},
     ]
     mock_graph = MagicMock()
@@ -58,7 +58,7 @@ def test_post_story_returns_cached_audio_url_without_running_graph(mocker):
 
 def test_get_today_stories_returns_cached_map(mocker):
     mock_supabase = MagicMock()
-    mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+    mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
         {"princess": "elsa", "audio_url": "https://example.com/elsa.mp3"},
     ]
     mocker.patch("backend.main.get_supabase_client", return_value=mock_supabase)
@@ -73,8 +73,8 @@ def test_get_today_stories_returns_cached_map(mocker):
 
 def test_get_story_today_princess_returns_story(mocker):
     mock_supabase = MagicMock()
-    mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
-        {"audio_url": "https://example.com/elsa.mp3", "story_text": "Dear Emma, [PROUD] today you were brave..."},
+    mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
+        {"audio_url": "https://example.com/elsa.mp3", "story_text": "Dear Emma, [PROUD] today you were brave...", "royal_challenge": None},
     ]
     mocker.patch("backend.main.get_supabase_client", return_value=mock_supabase)
     mock_graph = MagicMock()
@@ -89,7 +89,7 @@ def test_get_story_today_princess_returns_story(mocker):
 
 def test_get_story_today_princess_returns_404_when_not_generated(mocker):
     mock_supabase = MagicMock()
-    mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
+    mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
     mocker.patch("backend.main.get_supabase_client", return_value=mock_supabase)
     mock_graph = MagicMock()
     with patch("backend.main.royal_graph", mock_graph):
@@ -102,7 +102,7 @@ def test_get_story_today_princess_returns_404_when_not_generated(mocker):
 def test_get_story_today_static_route_not_shadowed(mocker):
     """Verify /story/today (no param) still works after adding /story/today/{princess}."""
     mock_supabase = MagicMock()
-    mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+    mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
         {"princess": "elsa", "audio_url": "https://example.com/elsa.mp3"},
     ]
     mocker.patch("backend.main.get_supabase_client", return_value=mock_supabase)
@@ -114,3 +114,55 @@ def test_get_story_today_static_route_not_shadowed(mocker):
         response = c.get("/story/today")
     assert response.status_code == 200
     assert "cached" in response.json()
+
+def test_post_story_life_lesson_triggers_graph(mocker):
+    mock_graph = MagicMock()
+    mock_graph.invoke.return_value = {"audio_url": "https://example.com/life-lesson.mp3"}
+    mock_supabase = MagicMock()
+    # Cache miss — three .eq() chained
+    mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
+    with patch("backend.main.royal_graph", mock_graph), \
+         patch("backend.main.get_supabase_client", return_value=mock_supabase):
+        from backend.main import app
+        from fastapi.testclient import TestClient
+        c = TestClient(app)
+        response = c.post("/story", json={"princess": "elsa", "language": "en", "story_type": "life_lesson"})
+    assert response.status_code == 200
+    assert response.json()["audio_url"] == "https://example.com/life-lesson.mp3"
+    # Verify story_type was passed through to the graph
+    call_args = mock_graph.invoke.call_args[0][0]
+    assert call_args["story_type"] == "life_lesson"
+
+def test_get_story_today_princess_life_lesson_returns_royal_challenge(mocker):
+    mock_supabase = MagicMock()
+    mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
+        {
+            "audio_url": "https://example.com/elsa-ll.mp3",
+            "story_text": "Once in Arendelle... Your Royal Challenge: Try sharing today.",
+            "royal_challenge": "Try sharing today.",
+        }
+    ]
+    mocker.patch("backend.main.get_supabase_client", return_value=mock_supabase)
+    mock_graph = MagicMock()
+    with patch("backend.main.royal_graph", mock_graph):
+        from backend.main import app
+        from fastapi.testclient import TestClient
+        c = TestClient(app)
+        response = c.get("/story/today/elsa?type=life_lesson")
+    assert response.status_code == 200
+    assert response.json()["royal_challenge"] == "Try sharing today."
+
+def test_get_story_today_princess_daily_returns_null_royal_challenge(mocker):
+    mock_supabase = MagicMock()
+    mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
+        {"audio_url": "https://example.com/elsa.mp3", "story_text": "Dear Emma...", "royal_challenge": None}
+    ]
+    mocker.patch("backend.main.get_supabase_client", return_value=mock_supabase)
+    mock_graph = MagicMock()
+    with patch("backend.main.royal_graph", mock_graph):
+        from backend.main import app
+        from fastapi.testclient import TestClient
+        c = TestClient(app)
+        response = c.get("/story/today/elsa")  # no ?type param — defaults to daily
+    assert response.status_code == 200
+    assert response.json()["royal_challenge"] is None

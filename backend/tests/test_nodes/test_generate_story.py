@@ -19,7 +19,7 @@ def praise_state() -> RoyalState:
             "metaphor": "Self-control is like the ice.",
             "fallback_letter": {"en": "fallback", "vi": "fallback"},
         },
-        story_text="", audio_url="", language="en",
+        story_type="daily", situation="", story_text="", audio_url="", language="en",
     )
 
 def test_generate_story_returns_text_with_audio_tags(praise_state, mocker):
@@ -37,7 +37,7 @@ def test_generate_story_uses_fallback_letter_when_no_brief(mocker):
         persona={
             "fallback_letter": {"en": "Emma, I was thinking of you.", "vi": "Emma ơi."},
         },
-        story_text="", audio_url="", language="en",
+        story_type="daily", situation="", story_text="", audio_url="", language="en",
     )
     mock_get_llm = mocker.patch("backend.nodes.generate_story.get_llm")
     result = generate_story(state)
@@ -51,7 +51,7 @@ def test_generate_story_uses_vi_fallback_when_language_vi(mocker):
         persona={
             "fallback_letter": {"en": "Emma, thinking of you.", "vi": "Emma ơi, nhớ em."},
         },
-        story_text="", audio_url="", language="vi",
+        story_type="daily", situation="", story_text="", audio_url="", language="vi",
     )
     mocker.patch("backend.nodes.generate_story.get_llm")
     result = generate_story(state)

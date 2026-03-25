@@ -8,7 +8,7 @@ def elsa_state() -> RoyalState:
     return RoyalState(
         princess="elsa", date=date.today().isoformat(),
         brief="She shared today.", tone="praise",
-        persona={}, story_text="", audio_url="", language="en",
+        persona={}, story_type="daily", situation="", story_text="", audio_url="", language="en",
     )
 
 def test_load_persona_returns_elsa_config(elsa_state):
@@ -23,7 +23,7 @@ def test_load_persona_raises_for_unknown_princess():
     state = RoyalState(
         princess="unknown", date=date.today().isoformat(),
         brief="test", tone="praise",
-        persona={}, story_text="", audio_url="", language="en",
+        persona={}, story_type="daily", situation="", story_text="", audio_url="", language="en",
     )
     with pytest.raises(FileNotFoundError):
         load_persona(state)

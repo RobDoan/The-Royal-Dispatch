@@ -10,6 +10,7 @@ def ready_state() -> RoyalState:
         princess="elsa", date=date.today().isoformat(),
         brief="She shared today.", tone="praise",
         persona={"voice_id": "test-voice-id"},
+        story_type="daily", situation="",
         story_text="[PROUD] Emma, you did wonderfully today!",
         audio_url="", language="en",
     )

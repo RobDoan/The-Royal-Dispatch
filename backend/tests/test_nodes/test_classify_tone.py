@@ -9,7 +9,7 @@ def praise_state() -> RoyalState:
     return RoyalState(
         princess="elsa", date=date.today().isoformat(),
         brief="She shared her blocks with her friend today.",
-        tone="", persona={}, story_text="", audio_url="", language="en",
+        tone="", persona={}, story_type="daily", situation="", story_text="", audio_url="", language="en",
     )
 
 @pytest.fixture
@@ -17,7 +17,7 @@ def habit_state() -> RoyalState:
     return RoyalState(
         princess="elsa", date=date.today().isoformat(),
         brief="She refused to brush her teeth tonight.",
-        tone="", persona={}, story_text="", audio_url="", language="en",
+        tone="", persona={}, story_type="daily", situation="", story_text="", audio_url="", language="en",
     )
 
 @pytest.fixture
@@ -25,7 +25,7 @@ def fallback_state() -> RoyalState:
     return RoyalState(
         princess="elsa", date=date.today().isoformat(),
         brief="__fallback__",
-        tone="", persona={}, story_text="", audio_url="", language="en",
+        tone="", persona={}, story_type="daily", situation="", story_text="", audio_url="", language="en",
     )
 
 def test_classify_tone_returns_praise(praise_state, mocker):

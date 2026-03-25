@@ -28,6 +28,8 @@ def base_state() -> RoyalState:
         brief="",
         tone="",
         persona={},
+        story_type="daily",
+        situation="",
         story_text="",
         audio_url="",
         language="en",

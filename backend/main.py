@@ -11,6 +11,7 @@ load_dotenv()
 
 from backend.graph import royal_graph
 from backend.db.client import get_supabase_client
+from backend.utils.time_utils import get_logical_date_iso
 
 app = FastAPI(title="Royal Dispatch API")
 
@@ -29,6 +30,7 @@ class StoryRequest(BaseModel):
     language: Literal["en", "vi"] = "en"
     story_type: Literal["daily", "life_lesson"] = "daily"
     date: str | None = None
+    timezone: str = "America/Los_Angeles"
 
 class StoryResponse(BaseModel):
     audio_url: str
@@ -41,15 +43,15 @@ class StoryDetailResponse(BaseModel):
 @app.post("/brief")
 def post_brief(req: BriefRequest):
     client = get_supabase_client()
+    # Simplified: rely on created_at timestamp automatically added by database
     client.table("briefs").insert({
-        "date": date.today().isoformat(),
         "text": req.text,
     }).execute()
     return {"status": "ok"}
 
 @app.post("/story", response_model=StoryResponse)
 def post_story(req: StoryRequest):
-    story_date = req.date or date.today().isoformat()
+    story_date = req.date or get_logical_date_iso(req.timezone)
     db = get_supabase_client()
     cached = (
         db.table("stories")
@@ -72,6 +74,7 @@ def post_story(req: StoryRequest):
         "story_text": "",
         "audio_url": "",
         "language": req.language,
+        "timezone": req.timezone,
     }
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
         future = executor.submit(royal_graph.invoke, initial_state)
@@ -82,8 +85,8 @@ def post_story(req: StoryRequest):
     return StoryResponse(audio_url=result["audio_url"])
 
 @app.get("/story/today")
-def get_today_stories():
-    today = date.today().isoformat()
+def get_today_stories(timezone: str = "America/Los_Angeles"):
+    today = get_logical_date_iso(timezone)
     client = get_supabase_client()
     result = (
         client.table("stories")
@@ -99,8 +102,9 @@ def get_today_stories():
 def get_today_story_for_princess(
     princess: str,
     type: str = Query(default="daily"),
+    timezone: str = "America/Los_Angeles",
 ):
-    today = date.today().isoformat()
+    today = get_logical_date_iso(timezone)
     client = get_supabase_client()
     result = (
         client.table("stories")

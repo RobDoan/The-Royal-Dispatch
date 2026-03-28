@@ -11,6 +11,7 @@ class RoyalState(TypedDict):
     story_text: str    # generated letter with ElevenLabs audio tags
     audio_url: str     # Supabase Storage public URL
     language: str      # "en" | "vi"
+    timezone: str      # user's IANA timezone, e.g. "America/Los_Angeles"
 
 class RoyalStateOptional(RoyalState, total=False):
     royal_challenge: str | None  # only written by generate_life_lesson; absent for daily

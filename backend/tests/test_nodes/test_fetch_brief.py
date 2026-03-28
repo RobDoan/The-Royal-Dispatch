@@ -33,20 +33,23 @@ def base_state() -> RoyalState:
         story_text="",
         audio_url="",
         language="en",
+        timezone="America/Los_Angeles",
     )
 
 def test_fetch_brief_returns_brief_text(base_state, mocker):
     mock_client = MagicMock()
-    mock_client.table.return_value.select.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = {
-        "text": "She shared her blocks today."
-    }
+    mock_client.table.return_value.select.return_value.gte.return_value.lte.return_value.execute.return_value.data = [
+        {"text": "She shared her blocks today."},
+        {"text": "She also cleaned up."}
+    ]
     mocker.patch("backend.nodes.fetch_brief.get_supabase_client", return_value=mock_client)
     result = fetch_brief(base_state)
-    assert result["brief"] == "She shared her blocks today."
+    assert "She shared her blocks today." in result["brief"]
+    assert "She also cleaned up." in result["brief"]
 
 def test_fetch_brief_uses_fallback_when_no_brief(base_state, mocker):
     mock_client = MagicMock()
-    mock_client.table.return_value.select.return_value.eq.return_value.maybe_single.return_value.execute.return_value.data = None
+    mock_client.table.return_value.select.return_value.gte.return_value.lte.return_value.execute.return_value.data = []
     mocker.patch("backend.nodes.fetch_brief.get_supabase_client", return_value=mock_client)
     result = fetch_brief(base_state)
     assert result["brief"] == "__fallback__"

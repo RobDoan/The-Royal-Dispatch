@@ -15,3 +15,4 @@ class RoyalState(TypedDict):
 
 class RoyalStateOptional(RoyalState, total=False):
     royal_challenge: str | None  # only written by generate_life_lesson; absent for daily
+    memories: str                # formatted memory context; empty string if none available

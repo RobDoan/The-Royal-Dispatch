@@ -56,3 +56,45 @@ def test_generate_story_uses_vi_fallback_when_language_vi(mocker):
     mocker.patch("backend.nodes.generate_story.get_llm")
     result = generate_story(state)
     assert result["story_text"] == "Emma ơi, nhớ em."
+
+
+def test_generate_story_includes_memories_in_system_prompt(praise_state, mocker):
+    """When memories are present, the system prompt includes them under 'What I know about Emma'."""
+    praise_state["memories"] = (
+        "- Emma loves her blue teddy bear\n- She is working on brushing her teeth"
+    )
+    mock_llm = MagicMock()
+    mock_llm.invoke.return_value.content = "[PROUD] Emma, you did great!"
+    mocker.patch("backend.nodes.generate_story.get_llm", return_value=mock_llm)
+
+    generate_story(praise_state)
+
+    system_msg = mock_llm.invoke.call_args[0][0][0]
+    assert "What I know about Emma" in system_msg.content
+    assert "Emma loves her blue teddy bear" in system_msg.content
+
+
+def test_generate_story_omits_memory_section_when_memories_empty(praise_state, mocker):
+    """When memories is empty string, 'What I know about Emma' must not appear in the prompt."""
+    praise_state["memories"] = ""
+    mock_llm = MagicMock()
+    mock_llm.invoke.return_value.content = "[PROUD] Emma, you did great!"
+    mocker.patch("backend.nodes.generate_story.get_llm", return_value=mock_llm)
+
+    generate_story(praise_state)
+
+    system_msg = mock_llm.invoke.call_args[0][0][0]
+    assert "What I know about Emma" not in system_msg.content
+
+
+def test_generate_story_omits_memory_section_when_memories_absent(praise_state, mocker):
+    """When memories key is absent from state, no memory section in prompt."""
+    # praise_state fixture doesn't include memories — simulates nodes before fetch_memories ran
+    mock_llm = MagicMock()
+    mock_llm.invoke.return_value.content = "[PROUD] Emma, you did great!"
+    mocker.patch("backend.nodes.generate_story.get_llm", return_value=mock_llm)
+
+    generate_story(praise_state)
+
+    system_msg = mock_llm.invoke.call_args[0][0][0]
+    assert "What I know about Emma" not in system_msg.content

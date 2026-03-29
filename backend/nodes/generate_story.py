@@ -25,6 +25,13 @@ Guidelines:
 
 Output only the letter text with audio tags. No headers, no explanations."""
 
+_MEMORY_SECTION = """
+
+What I know about Emma:
+{memories}
+
+Use these details naturally only when relevant — never force them in."""
+
 TONE_INSTRUCTIONS = {
     "praise": "Celebrate what Emma did today directly and warmly. Make her feel seen and proud.",
     "habit": 'Tell a short story about a character from your world who learned the same habit. Use this metaphor as inspiration: "{metaphor}". Never lecture — just model through story.',
@@ -52,6 +59,11 @@ def generate_story(state: RoyalStateOptional) -> dict:
         signature_phrase=persona["signature_phrase"],
         tone_instruction=tone_instruction,
     )
+
+    memories = state.get("memories", "")
+    if memories:
+        system += _MEMORY_SECTION.format(memories=memories)
+
     llm = get_llm()
     response = llm.invoke([
         SystemMessage(content=system),

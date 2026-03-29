@@ -1,5 +1,7 @@
 import os
 import concurrent.futures
+import secrets
+import glob as glob_module
 from datetime import date
 from typing import Literal
 from fastapi import FastAPI, HTTPException, Query
@@ -122,3 +124,116 @@ def get_today_story_for_princess(
         story_text=row["story_text"],
         royal_challenge=row.get("royal_challenge"),
     )
+
+
+# ── Pydantic models ──────────────────────────────────────────────────────────
+
+class CreateUserRequest(BaseModel):
+    name: str
+    telegram_chat_id: int
+
+class UserResponse(BaseModel):
+    id: str
+    name: str
+    telegram_chat_id: int
+    token: str
+    created_at: str
+
+class PreferencesResponse(BaseModel):
+    user_id: str
+    config: dict
+
+class UpdatePreferencesRequest(BaseModel):
+    config: dict
+
+class PersonaResponse(BaseModel):
+    id: str
+    name: str
+
+class UserMeResponse(BaseModel):
+    user_id: str
+    name: str
+    config: dict
+
+class UserByChatIdResponse(BaseModel):
+    user_id: str
+    name: str
+
+# ── Admin: users ─────────────────────────────────────────────────────────────
+
+@app.get("/admin/users", response_model=list[UserResponse])
+def admin_list_users():
+    client = get_supabase_client()
+    result = client.table("users").select("*").order("created_at").execute()
+    return result.data or []
+
+@app.post("/admin/users", response_model=UserResponse, status_code=201)
+def admin_create_user(req: CreateUserRequest):
+    token = "tk_" + secrets.token_hex(8)
+    client = get_supabase_client()
+    result = client.table("users").insert({
+        "name": req.name,
+        "telegram_chat_id": req.telegram_chat_id,
+        "token": token,
+    }).execute()
+    return result.data[0]
+
+@app.delete("/admin/users/{user_id}", status_code=204)
+def admin_delete_user(user_id: str):
+    client = get_supabase_client()
+    client.table("users").delete().eq("id", user_id).execute()
+
+# ── Admin: preferences ───────────────────────────────────────────────────────
+
+@app.get("/admin/users/{user_id}/preferences", response_model=PreferencesResponse)
+def admin_get_preferences(user_id: str):
+    client = get_supabase_client()
+    result = client.table("user_preferences").select("*").eq("user_id", user_id).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Preferences not found")
+    return result.data[0]
+
+@app.put("/admin/users/{user_id}/preferences", response_model=PreferencesResponse)
+def admin_update_preferences(user_id: str, req: UpdatePreferencesRequest):
+    client = get_supabase_client()
+    result = client.table("user_preferences").upsert({
+        "user_id": user_id,
+        "config": req.config,
+    }).execute()
+    return result.data[0]
+
+# ── Admin: personas ──────────────────────────────────────────────────────────
+
+@app.get("/admin/personas", response_model=list[PersonaResponse])
+def admin_list_personas():
+    import yaml
+    personas_dir = os.path.join(os.path.dirname(__file__), "personas")
+    results = []
+    for path in sorted(glob_module.glob(os.path.join(personas_dir, "*.yaml"))):
+        persona_id = os.path.splitext(os.path.basename(path))[0]
+        with open(path) as f:
+            data = yaml.safe_load(f)
+        results.append({"id": persona_id, "name": data.get("name", persona_id)})
+    return results
+
+# ── User resolution ───────────────────────────────────────────────────────────
+
+@app.get("/user/me", response_model=UserMeResponse)
+def get_user_by_token(token: str = Query(...)):
+    client = get_supabase_client()
+    result = client.table("users").select("id,name,token").eq("token", token).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="User not found")
+    user = result.data[0]
+    prefs = get_supabase_client().table("user_preferences").select("config").eq("user_id", user["id"]).execute()
+    config = prefs.data[0]["config"] if prefs.data else {}
+    return {"user_id": user["id"], "name": user["name"], "config": config}
+
+@app.get("/user/by-chat-id", response_model=UserByChatIdResponse)
+def get_user_by_chat_id(chat_id: int = Query(...)):
+    client = get_supabase_client()
+    result = client.table("users").select("id,name").eq("telegram_chat_id", chat_id).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="User not found")
+    user = result.data[0]
+    return {"user_id": user["id"], "name": user["name"]}

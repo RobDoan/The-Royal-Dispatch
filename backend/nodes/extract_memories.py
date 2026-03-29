@@ -1,6 +1,6 @@
 import logging
 from backend.state import RoyalStateOptional
-from backend.utils.mem0_client import get_memory
+from backend.utils.mem0_client import get_memory, EMMA_USER_ID
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ def extract_memories(state: RoyalStateOptional) -> dict:
                 {"role": "system", "content": _EXTRACTION_SYSTEM_PROMPT},
                 {"role": "user", "content": brief},
             ],
-            user_id="emma",
+            user_id=EMMA_USER_ID,
         )
     except Exception:
         logger.warning(

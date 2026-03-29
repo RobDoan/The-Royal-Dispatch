@@ -1,6 +1,8 @@
 import os
 from mem0 import Memory
 
+EMMA_USER_ID = "emma"
+
 _memory = None
 
 def get_memory() -> Memory:

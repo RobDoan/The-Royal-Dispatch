@@ -23,7 +23,7 @@ def test_extract_memories_calls_memory_add(mocker):
     call_args = mock_memory.add.call_args
     messages = call_args[0][0]
     assert any(
-        msg["role"] == "user" and "Emma" in msg["content"] for msg in messages
+        msg["role"] == "user" and msg["content"] == state["brief"] for msg in messages
     )
     assert call_args[1]["user_id"] == "emma"
     assert result == {}

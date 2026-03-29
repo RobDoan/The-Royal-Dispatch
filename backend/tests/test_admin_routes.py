@@ -1,7 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import MagicMock, patch
-import secrets
 
 
 def make_client(mocker):
@@ -59,6 +58,15 @@ def test_delete_user_returns_no_content(mocker):
     assert response.status_code == 204
 
 
+def test_delete_user_returns_404_when_not_found(mocker):
+    mock_sb = MagicMock()
+    mock_sb.table.return_value.delete.return_value.eq.return_value.execute.return_value.data = []
+    mocker.patch("backend.main.get_supabase_client", return_value=mock_sb)
+    client = make_client(mocker)
+    response = client.delete("/admin/users/nonexistent-id")
+    assert response.status_code == 404
+
+
 def test_get_preferences_returns_config(mocker):
     mock_sb = MagicMock()
     mock_sb.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
@@ -104,15 +112,17 @@ def test_list_personas_returns_persona_ids(mocker):
 
 
 def test_get_user_by_token_returns_user(mocker):
-    mock_sb = MagicMock()
-    mock_sb.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+    users_mock = MagicMock()
+    users_mock.select.return_value.eq.return_value.execute.return_value.data = [
         {"id": "uuid-1", "name": "Quy", "token": "tk_abc"}
     ]
-    mock_sb2 = MagicMock()
-    mock_sb2.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+    prefs_mock = MagicMock()
+    prefs_mock.select.return_value.eq.return_value.execute.return_value.data = [
         {"user_id": "uuid-1", "config": {"favorite_princesses": ["elsa"]}}
     ]
-    mocker.patch("backend.main.get_supabase_client", side_effect=[mock_sb, mock_sb2])
+    mock_sb = MagicMock()
+    mock_sb.table.side_effect = lambda t: users_mock if t == "users" else prefs_mock
+    mocker.patch("backend.main.get_supabase_client", return_value=mock_sb)
     client = make_client(mocker)
     response = client.get("/user/me?token=tk_abc")
     assert response.status_code == 200

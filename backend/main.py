@@ -1,7 +1,8 @@
 import os
+import glob
+import yaml
 import concurrent.futures
 import secrets
-import glob as glob_module
 from datetime import date
 from typing import Literal
 from fastapi import FastAPI, HTTPException, Query
@@ -181,7 +182,9 @@ def admin_create_user(req: CreateUserRequest):
 @app.delete("/admin/users/{user_id}", status_code=204)
 def admin_delete_user(user_id: str):
     client = get_supabase_client()
-    client.table("users").delete().eq("id", user_id).execute()
+    result = client.table("users").delete().eq("id", user_id).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="User not found")
 
 # ── Admin: preferences ───────────────────────────────────────────────────────
 
@@ -206,10 +209,9 @@ def admin_update_preferences(user_id: str, req: UpdatePreferencesRequest):
 
 @app.get("/admin/personas", response_model=list[PersonaResponse])
 def admin_list_personas():
-    import yaml
     personas_dir = os.path.join(os.path.dirname(__file__), "personas")
     results = []
-    for path in sorted(glob_module.glob(os.path.join(personas_dir, "*.yaml"))):
+    for path in sorted(glob.glob(os.path.join(personas_dir, "*.yaml"))):
         persona_id = os.path.splitext(os.path.basename(path))[0]
         with open(path) as f:
             data = yaml.safe_load(f)
@@ -225,7 +227,7 @@ def get_user_by_token(token: str = Query(...)):
     if not result.data:
         raise HTTPException(status_code=404, detail="User not found")
     user = result.data[0]
-    prefs = get_supabase_client().table("user_preferences").select("config").eq("user_id", user["id"]).execute()
+    prefs = client.table("user_preferences").select("config").eq("user_id", user["id"]).execute()
     config = prefs.data[0]["config"] if prefs.data else {}
     return {"user_id": user["id"], "name": user["name"], "config": config}
 

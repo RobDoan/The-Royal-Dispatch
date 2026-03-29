@@ -9,6 +9,8 @@ export default function CharactersPage() {
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [prefs, setPrefs] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -28,6 +30,8 @@ export default function CharactersPage() {
           }),
         );
         setPrefs(prefsMap);
+      } catch {
+        setError('Failed to load users or personas. Please refresh and try again.');
       } finally {
         setLoading(false);
       }
@@ -36,8 +40,15 @@ export default function CharactersPage() {
   }, []);
 
   async function handleSave(userId: string, selected: string[]) {
+    const previous = prefs[userId] ?? [];
     setPrefs((prev) => ({ ...prev, [userId]: selected }));
-    await updatePreferences(userId, { favorite_princesses: selected });
+    setSaveError(null);
+    try {
+      await updatePreferences(userId, { favorite_princesses: selected });
+    } catch {
+      setPrefs((prev) => ({ ...prev, [userId]: previous }));
+      setSaveError('Failed to save preferences. Please try again.');
+    }
   }
 
   return (
@@ -54,16 +65,23 @@ export default function CharactersPage() {
         {loading && (
           <p className="p-6 text-sm text-slate-500">Loading...</p>
         )}
-        {!loading && users.length === 0 && (
+        {!loading && error && (
+          <p className="p-6 text-sm text-red-400">{error}</p>
+        )}
+        {!loading && !error && users.length === 0 && (
           <p className="p-6 text-sm text-slate-500">No users yet. Add users first.</p>
         )}
-        {!loading && users.map((user) => (
+        {saveError && (
+          <p className="px-6 py-2 text-sm text-red-400">{saveError}</p>
+        )}
+        {!loading && !error && users.map((user) => (
           <div key={user.id} className="flex items-start gap-6 px-6 py-4 border-b last:border-0"
             style={{ borderColor: 'var(--sidebar-border)' }}>
             <div className="min-w-36">
               <p className="text-sm font-semibold text-slate-100">{user.name}</p>
             </div>
             <CharactersPicker
+              key={`${user.id}-${(prefs[user.id] ?? []).join(',')}`}
               userId={user.id}
               personas={personas}
               initialSelected={prefs[user.id] ?? []}

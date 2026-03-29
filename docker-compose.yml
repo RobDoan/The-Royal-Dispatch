@@ -28,6 +28,20 @@ services:
     depends_on:
       - backend
 
+  admin:
+    build:
+      context: ./admin
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - ./admin/.env.local
+    restart: unless-stopped
+    depends_on:
+      - backend
+
   n8n:
     image: n8nio/n8n
     ports:

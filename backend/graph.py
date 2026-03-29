@@ -1,8 +1,10 @@
 from langgraph.graph import StateGraph, END
 from backend.state import RoyalStateOptional
 from backend.nodes.fetch_brief import fetch_brief
+from backend.nodes.extract_memories import extract_memories
 from backend.nodes.classify_tone import classify_tone
 from backend.nodes.load_persona import load_persona
+from backend.nodes.fetch_memories import fetch_memories
 from backend.nodes.generate_story import generate_story
 from backend.nodes.infer_situation import infer_situation
 from backend.nodes.generate_life_lesson import generate_life_lesson
@@ -15,8 +17,10 @@ def route_story_type(state: RoyalStateOptional) -> str:
 def build_graph():
     graph = StateGraph(RoyalStateOptional)
     graph.add_node("fetch_brief", fetch_brief)
+    graph.add_node("extract_memories", extract_memories)
     graph.add_node("classify_tone", classify_tone)
     graph.add_node("load_persona", load_persona)
+    graph.add_node("fetch_memories", fetch_memories)
     graph.add_node("generate_story", generate_story)
     graph.add_node("infer_situation", infer_situation)
     graph.add_node("generate_life_lesson", generate_life_lesson)
@@ -24,10 +28,12 @@ def build_graph():
     graph.add_node("store_result", store_result)
 
     graph.set_entry_point("fetch_brief")
-    graph.add_edge("fetch_brief", "classify_tone")
+    graph.add_edge("fetch_brief", "extract_memories")
+    graph.add_edge("extract_memories", "classify_tone")
     graph.add_edge("classify_tone", "load_persona")
+    graph.add_edge("load_persona", "fetch_memories")
     graph.add_conditional_edges(
-        "load_persona",
+        "fetch_memories",
         route_story_type,
         {"daily": "generate_story", "life_lesson": "infer_situation"},
     )

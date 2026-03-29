@@ -21,12 +21,30 @@
     },
     {
       "parameters": {
+        "method": "GET",
+        "url": "={{ $env.BACKEND_URL }}/user/by-chat-id?chat_id={{ $json.message.chat.id }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "node-lookup-user",
+      "name": "Lookup User",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
         "conditions": {
           "options": { "caseSensitive": true },
           "conditions": [
             {
-              "leftValue": "={{ $json.message.chat.id }}",
-              "rightValue": "={{ parseInt($env.PARENT_CHAT_ID) }}",
+              "leftValue": "={{ $json.statusCode }}",
+              "rightValue": 200,
               "operator": { "type": "number", "operation": "equals" }
             }
           ]
@@ -36,7 +54,7 @@
       "name": "Sender Filter",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [460, 300]
+      "position": [680, 300]
     },
     {
       "parameters": {
@@ -47,7 +65,7 @@
               "conditions": {
                 "conditions": [
                   {
-                    "leftValue": "={{ $json.message.text }}",
+                    "leftValue": "={{ $('Telegram Trigger').first().json.message.text }}",
                     "operator": { "type": "string", "operation": "exists" }
                   }
                 ]
@@ -58,7 +76,7 @@
               "conditions": {
                 "conditions": [
                   {
-                    "leftValue": "={{ $json.message.voice }}",
+                    "leftValue": "={{ $('Telegram Trigger').first().json.message.voice }}",
                     "operator": { "type": "object", "operation": "exists" }
                   }
                 ]
@@ -73,7 +91,7 @@
       "name": "Message Type Switch",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
-      "position": [680, 300]
+      "position": [900, 300]
     },
     {
       "parameters": {
@@ -81,26 +99,26 @@
         "url": "={{ $env.BACKEND_URL }}/brief",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { text: $json.message.text } }}",
+        "jsonBody": "={{ { text: $('Telegram Trigger').first().json.message.text } }}",
         "options": {}
       },
       "id": "node-post-brief-text",
       "name": "Post Brief (text)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [900, 180]
+      "position": [1120, 180]
     },
     {
       "parameters": {
         "method": "GET",
-        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/getFile?file_id=' + $json.message.voice.file_id }}",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/getFile?file_id=' + $('Telegram Trigger').first().json.message.voice.file_id }}",
         "options": {}
       },
       "id": "node-get-file-path",
       "name": "Get File Path",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [900, 420]
+      "position": [1120, 420]
     },
     {
       "parameters": {
@@ -118,7 +136,7 @@
       "name": "Download File Binary",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1120, 420]
+      "position": [1340, 420]
     },
     {
       "parameters": {
@@ -151,7 +169,7 @@
       "name": "Whisper Transcribe",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1340, 420],
+      "position": [1560, 420],
       "credentials": {
         "httpHeaderAuth": {
           "id": "openai-cred-id",
@@ -172,11 +190,16 @@
       "name": "Post Brief (voice)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1560, 420]
+      "position": [1780, 420]
     }
   ],
   "connections": {
     "Telegram Trigger": {
+      "main": [
+        [{ "node": "Lookup User", "type": "main", "index": 0 }]
+      ]
+    },
+    "Lookup User": {
       "main": [
         [{ "node": "Sender Filter", "type": "main", "index": 0 }]
       ]
@@ -213,7 +236,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "1",
+  "versionId": "2",
   "meta": {
     "instanceId": "royal-dispatch"
   },

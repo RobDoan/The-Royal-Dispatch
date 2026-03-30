@@ -21,6 +21,15 @@ export interface Persona {
   name: string;
 }
 
+export interface Child {
+  id: string;
+  parent_id: string;
+  name: string;
+  timezone: string;
+  preferences: Record<string, unknown>;
+  created_at: string;
+}
+
 export async function listUsers(): Promise<User[]> {
   const res = await fetch(`${API_URL}/admin/users`);
   if (!res.ok) throw new Error('Failed to list users');
@@ -62,4 +71,25 @@ export async function listPersonas(): Promise<Persona[]> {
   const res = await fetch(`${API_URL}/admin/personas`);
   if (!res.ok) throw new Error('Failed to list personas');
   return res.json();
+}
+
+export async function listChildren(userId: string): Promise<Child[]> {
+  const res = await fetch(`${API_URL}/admin/users/${userId}/children`);
+  if (!res.ok) throw new Error('Failed to list children');
+  return res.json();
+}
+
+export async function createChild(userId: string, name: string): Promise<Child> {
+  const res = await fetch(`${API_URL}/admin/users/${userId}/children`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+  if (!res.ok) throw new Error('Failed to create child');
+  return res.json();
+}
+
+export async function deleteChild(childId: string): Promise<void> {
+  const res = await fetch(`${API_URL}/admin/children/${childId}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error('Failed to delete child');
 }

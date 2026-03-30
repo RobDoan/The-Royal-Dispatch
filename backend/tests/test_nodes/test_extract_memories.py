@@ -4,16 +4,35 @@ from backend.nodes.extract_memories import extract_memories
 
 def test_extract_memories_skips_fallback(mocker):
     """When brief is __fallback__, mem0 must not be called."""
-    state = {"brief": "__fallback__"}
+    state = {"brief": "__fallback__", "child_id": "abc-123"}
     mock_get_memory = mocker.patch("backend.nodes.extract_memories.get_memory")
     result = extract_memories(state)
     mock_get_memory.assert_not_called()
     assert result == {}
 
 
-def test_extract_memories_calls_memory_add(mocker):
-    """When a real brief is present, memory.add() is called with the brief and user_id='emma'."""
-    state = {"brief": "Emma shared her toys and loves her blue teddy bear."}
+def test_extract_memories_skips_when_no_child_id(mocker):
+    """When child_id is absent, mem0 must not be called."""
+    state = {"brief": "Sophie shared her toys today."}
+    mock_get_memory = mocker.patch("backend.nodes.extract_memories.get_memory")
+    result = extract_memories(state)
+    mock_get_memory.assert_not_called()
+    assert result == {}
+
+
+def test_extract_memories_skips_when_child_id_is_none(mocker):
+    """When child_id is explicitly None, mem0 must not be called."""
+    state = {"brief": "Sophie shared her toys today.", "child_id": None}
+    mock_get_memory = mocker.patch("backend.nodes.extract_memories.get_memory")
+    result = extract_memories(state)
+    mock_get_memory.assert_not_called()
+    assert result == {}
+
+
+def test_extract_memories_calls_memory_add_with_child_id(mocker):
+    """When child_id is present, memory.add() is called with user_id=child_id."""
+    child_id = "abc-123"
+    state = {"brief": "Emma shared her toys and loves her blue teddy bear.", "child_id": child_id}
     mock_memory = MagicMock()
     mocker.patch("backend.nodes.extract_memories.get_memory", return_value=mock_memory)
 
@@ -25,13 +44,13 @@ def test_extract_memories_calls_memory_add(mocker):
     assert any(
         msg["role"] == "user" and msg["content"] == state["brief"] for msg in messages
     )
-    assert call_args[1]["user_id"] == "emma"
+    assert call_args[1]["user_id"] == child_id
     assert result == {}
 
 
 def test_extract_memories_system_prompt_covers_all_categories(mocker):
     """System message must mention preferences, habits, milestones, social patterns."""
-    state = {"brief": "Emma had a great day."}
+    state = {"brief": "Emma had a great day.", "child_id": "abc-123"}
     mock_memory = MagicMock()
     mocker.patch("backend.nodes.extract_memories.get_memory", return_value=mock_memory)
 
@@ -45,7 +64,7 @@ def test_extract_memories_system_prompt_covers_all_categories(mocker):
 
 def test_extract_memories_handles_mem0_error_gracefully(mocker):
     """If mem0 raises, the node returns {} without propagating the exception."""
-    state = {"brief": "Emma had a great day."}
+    state = {"brief": "Emma had a great day.", "child_id": "abc-123"}
     mock_memory = MagicMock()
     mock_memory.add.side_effect = Exception("Qdrant unreachable")
     mocker.patch("backend.nodes.extract_memories.get_memory", return_value=mock_memory)

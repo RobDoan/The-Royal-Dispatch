@@ -198,11 +198,14 @@ export function UsersTable({ initialUsers }: Props) {
                       {loadingChildren.has(user.id) && (
                         <p className="text-sm text-slate-500">Loading…</p>
                       )}
-                      {!loadingChildren.has(user.id) && childError[user.id] && (
+                      {!loadingChildren.has(user.id) && childrenByUser[user.id] === undefined && childError[user.id] && (
                         <p className="text-sm text-red-400">{childError[user.id]}</p>
                       )}
-                      {!loadingChildren.has(user.id) && !childError[user.id] && (
+                      {!loadingChildren.has(user.id) && childrenByUser[user.id] !== undefined && (
                         <div className="flex flex-col gap-2">
+                          {childError[user.id] && (
+                            <p className="text-sm text-red-400">{childError[user.id]}</p>
+                          )}
                           {(childrenByUser[user.id] ?? []).length === 0 ? (
                             <p className="text-sm text-slate-500">No children yet.</p>
                           ) : (

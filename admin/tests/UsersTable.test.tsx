@@ -140,5 +140,7 @@ describe('UsersTable — delete child', () => {
 
     fireEvent.click(screen.getByTitle('Remove child'));
     await waitFor(() => expect(screen.getByText('Failed to remove child.')).toBeInTheDocument());
+    // Emma must still be visible — delete was not optimistic, child was not removed
+    expect(screen.getByText('Emma')).toBeInTheDocument();
   });
 });

@@ -91,3 +91,25 @@ def test_fetch_brief_uses_fallback_when_no_brief(base_state, mocker):
     _mock_conn_with_rows(mocker, [])
     result = fetch_brief(base_state)
     assert result["brief"] == "__fallback__"
+
+
+def test_fetch_brief_passes_none_child_id_when_absent(base_state, mocker):
+    mock_cursor = _mock_conn_with_rows(mocker, [])
+    # base_state doesn't have child_id, so it should be absent
+    result = fetch_brief(base_state)
+    # Verify the SQL was called with None as the third parameter
+    mock_cursor.execute.assert_called_once()
+    call_args = mock_cursor.execute.call_args
+    assert call_args[0][1][2] is None  # Third SQL parameter should be None
+
+
+def test_fetch_brief_passes_child_id_when_present(base_state, mocker):
+    mock_cursor = _mock_conn_with_rows(mocker, [("Test brief for child.",)])
+    # Add child_id to the state
+    state_with_child = {**base_state, "child_id": "abc-123"}
+    result = fetch_brief(state_with_child)
+    # Verify the SQL was called with "abc-123" as the third parameter
+    mock_cursor.execute.assert_called_once()
+    call_args = mock_cursor.execute.call_args
+    assert call_args[0][1][2] == "abc-123"  # Third SQL parameter should be "abc-123"
+    assert "Test brief for child." in result["brief"]

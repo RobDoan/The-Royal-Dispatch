@@ -178,6 +178,21 @@ class UserByChatIdResponse(BaseModel):
     name: str
 
 
+class CreateChildRequest(BaseModel):
+    name: str
+    timezone: str = "America/Los_Angeles"
+    preferences: dict = {}
+
+
+class ChildResponse(BaseModel):
+    id: str
+    parent_id: str
+    name: str
+    timezone: str
+    preferences: dict
+    created_at: str
+
+
 # ── Admin: users ──────────────────────────────────────────────────────────────
 
 @app.get("/admin/users", response_model=list[UserResponse])
@@ -215,6 +230,53 @@ def admin_delete_user(user_id: str):
             row = cur.fetchone()
     if not row:
         raise HTTPException(status_code=404, detail="User not found")
+
+
+# ── Admin: children ───────────────────────────────────────────────────────────
+
+@app.get("/admin/users/{user_id}/children", response_model=list[ChildResponse])
+def admin_list_children(user_id: str):
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, parent_id, name, timezone, preferences, created_at FROM children WHERE parent_id = %s ORDER BY created_at",
+                (user_id,),
+            )
+            rows = cur.fetchall()
+    return [
+        {
+            "id": str(r[0]), "parent_id": str(r[1]), "name": r[2],
+            "timezone": r[3], "preferences": r[4], "created_at": r[5].isoformat(),
+        }
+        for r in rows
+    ]
+
+
+@app.post("/admin/users/{user_id}/children", response_model=ChildResponse, status_code=201)
+def admin_create_child(user_id: str, req: CreateChildRequest):
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """INSERT INTO children (parent_id, name, timezone, preferences)
+                   VALUES (%s, %s, %s, %s)
+                   RETURNING id, parent_id, name, timezone, preferences, created_at""",
+                (user_id, req.name, req.timezone, json.dumps(req.preferences)),
+            )
+            row = cur.fetchone()
+    return {
+        "id": str(row[0]), "parent_id": str(row[1]), "name": row[2],
+        "timezone": row[3], "preferences": row[4], "created_at": row[5].isoformat(),
+    }
+
+
+@app.delete("/admin/children/{child_id}", status_code=204)
+def admin_delete_child(child_id: str):
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM children WHERE id = %s RETURNING id", (child_id,))
+            row = cur.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Child not found")
 
 
 # ── Admin: preferences ────────────────────────────────────────────────────────

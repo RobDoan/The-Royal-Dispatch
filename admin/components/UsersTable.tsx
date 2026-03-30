@@ -64,6 +64,7 @@ export function UsersTable({ initialUsers }: Props) {
     if (childrenByUser[userId] !== undefined) return; // already cached
     setLoadingChildren((prev) => new Set(prev).add(userId));
     try {
+      setChildError((prev) => ({ ...prev, [userId]: '' }));
       const kids = await listChildren(userId);
       setChildrenByUser((prev) => ({ ...prev, [userId]: kids }));
     } catch {

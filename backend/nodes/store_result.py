@@ -4,13 +4,28 @@ from backend.db.client import get_conn
 
 def store_result(state: RoyalStateOptional) -> dict:
     user_id = state.get("user_id")
+    child_id = state.get("child_id")
     royal_challenge = state.get("royal_challenge")
 
-    if user_id is not None:
+    if child_id is not None:
+        sql = """
+            INSERT INTO stories (date, princess, story_type, language, story_text, audio_url, royal_challenge, user_id, child_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (date, princess, story_type, language, child_id) WHERE child_id IS NOT NULL
+            DO UPDATE SET
+                story_text = EXCLUDED.story_text,
+                audio_url = EXCLUDED.audio_url,
+                royal_challenge = EXCLUDED.royal_challenge
+        """
+        params = (
+            state["date"], state["princess"], state["story_type"], state["language"],
+            state["story_text"], state["audio_url"], royal_challenge, user_id, child_id,
+        )
+    elif user_id is not None:
         sql = """
             INSERT INTO stories (date, princess, story_type, language, story_text, audio_url, royal_challenge, user_id)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (date, princess, story_type, language, user_id) WHERE user_id IS NOT NULL
+            ON CONFLICT (date, princess, story_type, language, user_id) WHERE user_id IS NOT NULL AND child_id IS NULL
             DO UPDATE SET
                 story_text = EXCLUDED.story_text,
                 audio_url = EXCLUDED.audio_url,
@@ -24,7 +39,7 @@ def store_result(state: RoyalStateOptional) -> dict:
         sql = """
             INSERT INTO stories (date, princess, story_type, language, story_text, audio_url, royal_challenge)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (date, princess, story_type, language) WHERE user_id IS NULL
+            ON CONFLICT (date, princess, story_type, language) WHERE user_id IS NULL AND child_id IS NULL
             DO UPDATE SET
                 story_text = EXCLUDED.story_text,
                 audio_url = EXCLUDED.audio_url,

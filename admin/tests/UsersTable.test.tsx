@@ -80,3 +80,65 @@ describe('UsersTable — row expand/collapse', () => {
     await waitFor(() => expect(screen.getByText('Failed to load children.')).toBeInTheDocument());
   });
 });
+
+describe('UsersTable — add child', () => {
+  it('submitting the add form calls createChild and appends to list', async () => {
+    vi.mocked(api.listChildren).mockResolvedValueOnce([]);
+    const newChild: api.Child = { id: 'c2', parent_id: 'u1', name: 'Max', timezone: 'America/Los_Angeles', preferences: {}, created_at: '2026-01-02T00:00:00Z' };
+    vi.mocked(api.createChild).mockResolvedValueOnce(newChild);
+
+    render(<UsersTable initialUsers={mockUsers} />);
+    fireEvent.click(screen.getByText('Quy'));
+    await waitFor(() => expect(screen.getByPlaceholderText('Child name')).toBeInTheDocument());
+
+    fireEvent.change(screen.getByPlaceholderText('Child name'), { target: { value: 'Max' } });
+    fireEvent.click(screen.getByText('+ Add'));
+
+    expect(api.createChild).toHaveBeenCalledWith('u1', 'Max');
+    await waitFor(() => expect(screen.getByText('Max')).toBeInTheDocument());
+    expect((screen.getByPlaceholderText('Child name') as HTMLInputElement).value).toBe('');
+  });
+
+  it('shows error when createChild fails', async () => {
+    vi.mocked(api.listChildren).mockResolvedValueOnce([]);
+    vi.mocked(api.createChild).mockRejectedValueOnce(new Error('network'));
+
+    render(<UsersTable initialUsers={mockUsers} />);
+    fireEvent.click(screen.getByText('Quy'));
+    await waitFor(() => expect(screen.getByPlaceholderText('Child name')).toBeInTheDocument());
+
+    fireEvent.change(screen.getByPlaceholderText('Child name'), { target: { value: 'Max' } });
+    fireEvent.click(screen.getByText('+ Add'));
+
+    await waitFor(() => expect(screen.getByText('Failed to add child.')).toBeInTheDocument());
+  });
+});
+
+describe('UsersTable — delete child', () => {
+  it('clicking delete removes the child from the list', async () => {
+    vi.mocked(api.listChildren).mockResolvedValueOnce(mockChildren);
+    vi.mocked(api.deleteChild).mockResolvedValueOnce(undefined);
+    vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
+
+    render(<UsersTable initialUsers={mockUsers} />);
+    fireEvent.click(screen.getByText('Quy'));
+    await waitFor(() => expect(screen.getByText('Emma')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTitle('Remove child'));
+    expect(api.deleteChild).toHaveBeenCalledWith('c1');
+    await waitFor(() => expect(screen.queryByText('Emma')).not.toBeInTheDocument());
+  });
+
+  it('shows error when deleteChild fails', async () => {
+    vi.mocked(api.listChildren).mockResolvedValueOnce(mockChildren);
+    vi.mocked(api.deleteChild).mockRejectedValueOnce(new Error('network'));
+    vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
+
+    render(<UsersTable initialUsers={mockUsers} />);
+    fireEvent.click(screen.getByText('Quy'));
+    await waitFor(() => expect(screen.getByText('Emma')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTitle('Remove child'));
+    await waitFor(() => expect(screen.getByText('Failed to remove child.')).toBeInTheDocument());
+  });
+});

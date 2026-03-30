@@ -24,7 +24,7 @@ const mockChildren: api.Child[] = [
 ];
 
 beforeEach(() => {
-  vi.restoreAllMocks();
+  vi.clearAllMocks();
 });
 
 describe('UsersTable — row expand/collapse', () => {

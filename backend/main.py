@@ -2,6 +2,7 @@ import os
 import glob
 import yaml
 import json
+import logging
 import concurrent.futures
 import secrets
 from datetime import date
@@ -16,6 +17,9 @@ load_dotenv()
 from backend.graph import royal_graph
 from backend.db.client import get_conn
 from backend.utils.time_utils import get_logical_date_iso
+from backend.utils.child_detection import detect_children_in_brief
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Royal Dispatch API")
 
@@ -39,6 +43,7 @@ class StoryRequest(BaseModel):
     date: str | None = None
     timezone: str = "America/Los_Angeles"
     user_id: str | None = None
+    child_id: str | None = None
 
 
 class StoryResponse(BaseModel):
@@ -54,12 +59,44 @@ class StoryDetailResponse(BaseModel):
 @app.post("/brief")
 def post_brief(req: BriefRequest):
     today = date.today().isoformat()
+
+    # Resolve which child(ren) this brief is about
+    child_ids_to_store: list[str | None] = []
+
+    if req.user_id:
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT id, name FROM children WHERE parent_id = %s ORDER BY created_at",
+                    (req.user_id,),
+                )
+                children = cur.fetchall()  # list of (id, name)
+
+        if len(children) == 0:
+            child_ids_to_store = [None]
+        elif len(children) == 1:
+            child_ids_to_store = [str(children[0][0])]
+        else:
+            child_names = [row[1] for row in children]
+            try:
+                matched_names = detect_children_in_brief(req.text, child_names)
+            except Exception:
+                logger.warning("post_brief: child detection failed, storing with child_id=None", exc_info=True)
+                matched_names = []
+            name_to_id = {row[1]: str(row[0]) for row in children}
+            child_ids_to_store = [name_to_id[n] for n in matched_names if n in name_to_id]
+            if not child_ids_to_store:
+                child_ids_to_store = [None]
+    else:
+        child_ids_to_store = [None]
+
     with get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute(
-                "INSERT INTO briefs (date, text, user_id) VALUES (%s, %s, %s)",
-                (today, req.text, req.user_id),
-            )
+            for child_id in child_ids_to_store:
+                cur.execute(
+                    "INSERT INTO briefs (date, text, user_id, child_id) VALUES (%s, %s, %s, %s)",
+                    (today, req.text, req.user_id, child_id),
+                )
     return {"status": "ok"}
 
 
@@ -71,8 +108,9 @@ def post_story(req: StoryRequest):
             cur.execute(
                 """SELECT audio_url FROM stories
                    WHERE date = %s AND princess = %s AND story_type = %s
-                     AND language = %s AND user_id IS NOT DISTINCT FROM %s""",
-                (story_date, req.princess, req.story_type, req.language, req.user_id),
+                     AND language = %s AND user_id IS NOT DISTINCT FROM %s
+                     AND child_id IS NOT DISTINCT FROM %s""",
+                (story_date, req.princess, req.story_type, req.language, req.user_id, req.child_id),
             )
             row = cur.fetchone()
     if row:
@@ -90,6 +128,7 @@ def post_story(req: StoryRequest):
         "language": req.language,
         "timezone": req.timezone,
         "user_id": req.user_id,
+        "child_id": req.child_id,
     }
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
         future = executor.submit(royal_graph.invoke, initial_state)
@@ -122,6 +161,7 @@ def get_today_story_for_princess(
     timezone: str = "America/Los_Angeles",
     language: str = "en",
     user_id: str | None = None,
+    child_id: str | None = None,
 ):
     today = get_logical_date_iso(timezone)
     with get_conn() as conn:
@@ -129,8 +169,9 @@ def get_today_story_for_princess(
             cur.execute(
                 """SELECT audio_url, story_text, royal_challenge FROM stories
                    WHERE date = %s AND princess = %s AND story_type = %s AND language = %s
-                     AND user_id IS NOT DISTINCT FROM %s""",
-                (today, princess, type, language, user_id),
+                     AND user_id IS NOT DISTINCT FROM %s
+                     AND child_id IS NOT DISTINCT FROM %s""",
+                (today, princess, type, language, user_id, child_id),
             )
             row = cur.fetchone()
     if not row:
@@ -178,6 +219,21 @@ class UserByChatIdResponse(BaseModel):
     name: str
 
 
+class CreateChildRequest(BaseModel):
+    name: str
+    timezone: str = "America/Los_Angeles"
+    preferences: dict = {}
+
+
+class ChildResponse(BaseModel):
+    id: str
+    parent_id: str
+    name: str
+    timezone: str
+    preferences: dict
+    created_at: str
+
+
 # ── Admin: users ──────────────────────────────────────────────────────────────
 
 @app.get("/admin/users", response_model=list[UserResponse])
@@ -215,6 +271,56 @@ def admin_delete_user(user_id: str):
             row = cur.fetchone()
     if not row:
         raise HTTPException(status_code=404, detail="User not found")
+
+
+# ── Admin: children ───────────────────────────────────────────────────────────
+
+@app.get("/admin/users/{user_id}/children", response_model=list[ChildResponse])
+def admin_list_children(user_id: str):
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, parent_id, name, timezone, preferences, created_at FROM children WHERE parent_id = %s ORDER BY created_at",
+                (user_id,),
+            )
+            rows = cur.fetchall()
+    return [
+        {
+            "id": str(r[0]), "parent_id": str(r[1]), "name": r[2],
+            "timezone": r[3], "preferences": r[4], "created_at": r[5].isoformat(),
+        }
+        for r in rows
+    ]
+
+
+@app.post("/admin/users/{user_id}/children", response_model=ChildResponse, status_code=201)
+def admin_create_child(user_id: str, req: CreateChildRequest):
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM users WHERE id = %s", (user_id,))
+            if not cur.fetchone():
+                raise HTTPException(status_code=404, detail="User not found")
+            cur.execute(
+                """INSERT INTO children (parent_id, name, timezone, preferences)
+                   VALUES (%s, %s, %s, %s)
+                   RETURNING id, parent_id, name, timezone, preferences, created_at""",
+                (user_id, req.name, req.timezone, json.dumps(req.preferences)),
+            )
+            row = cur.fetchone()
+    return {
+        "id": str(row[0]), "parent_id": str(row[1]), "name": row[2],
+        "timezone": row[3], "preferences": row[4], "created_at": row[5].isoformat(),
+    }
+
+
+@app.delete("/admin/children/{child_id}", status_code=204)
+def admin_delete_child(child_id: str):
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM children WHERE id = %s RETURNING id", (child_id,))
+            row = cur.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Child not found")
 
 
 # ── Admin: preferences ────────────────────────────────────────────────────────

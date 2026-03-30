@@ -77,3 +77,27 @@ def test_fetch_memories_returns_empty_string_when_no_memories(mocker):
     result = fetch_memories(state)
 
     assert result == {"memories": ""}
+
+
+def test_fetch_memories_skips_when_child_id_is_none(mocker):
+    """When child_id is present but None, mem0 must not be called and memories=''."""
+    state = {"brief": "Emma had a great day.", "child_id": None}
+    mock_memory = MagicMock()
+    mocker.patch("backend.nodes.fetch_memories.get_memory", return_value=mock_memory)
+
+    result = fetch_memories(state)
+
+    mock_memory.get_all.assert_not_called()
+    assert result == {"memories": ""}
+
+
+def test_fetch_memories_skips_when_no_child_id(mocker):
+    """When child_id key is ABSENT from state dict, mem0 must not be called and memories=''."""
+    state = {"brief": "Emma had a great day."}  # no child_id key
+    mock_memory = MagicMock()
+    mocker.patch("backend.nodes.fetch_memories.get_memory", return_value=mock_memory)
+
+    result = fetch_memories(state)
+
+    mock_memory.get_all.assert_not_called()
+    assert result == {"memories": ""}

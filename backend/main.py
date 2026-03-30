@@ -40,6 +40,7 @@ class StoryRequest(BaseModel):
     date: str | None = None
     timezone: str = "America/Los_Angeles"
     user_id: str | None = None
+    child_id: str | None = None
 
 
 class StoryResponse(BaseModel):
@@ -100,8 +101,9 @@ def post_story(req: StoryRequest):
             cur.execute(
                 """SELECT audio_url FROM stories
                    WHERE date = %s AND princess = %s AND story_type = %s
-                     AND language = %s AND user_id IS NOT DISTINCT FROM %s""",
-                (story_date, req.princess, req.story_type, req.language, req.user_id),
+                     AND language = %s AND user_id IS NOT DISTINCT FROM %s
+                     AND child_id IS NOT DISTINCT FROM %s""",
+                (story_date, req.princess, req.story_type, req.language, req.user_id, req.child_id),
             )
             row = cur.fetchone()
     if row:
@@ -119,6 +121,7 @@ def post_story(req: StoryRequest):
         "language": req.language,
         "timezone": req.timezone,
         "user_id": req.user_id,
+        "child_id": req.child_id,
     }
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
         future = executor.submit(royal_graph.invoke, initial_state)
@@ -151,6 +154,7 @@ def get_today_story_for_princess(
     timezone: str = "America/Los_Angeles",
     language: str = "en",
     user_id: str | None = None,
+    child_id: str | None = None,
 ):
     today = get_logical_date_iso(timezone)
     with get_conn() as conn:
@@ -158,8 +162,9 @@ def get_today_story_for_princess(
             cur.execute(
                 """SELECT audio_url, story_text, royal_challenge FROM stories
                    WHERE date = %s AND princess = %s AND story_type = %s AND language = %s
-                     AND user_id IS NOT DISTINCT FROM %s""",
-                (today, princess, type, language, user_id),
+                     AND user_id IS NOT DISTINCT FROM %s
+                     AND child_id IS NOT DISTINCT FROM %s""",
+                (today, princess, type, language, user_id, child_id),
             )
             row = cur.fetchone()
     if not row:

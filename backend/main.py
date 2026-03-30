@@ -2,6 +2,7 @@ import os
 import glob
 import yaml
 import json
+import logging
 import concurrent.futures
 import secrets
 from datetime import date
@@ -17,6 +18,8 @@ from backend.graph import royal_graph
 from backend.db.client import get_conn
 from backend.utils.time_utils import get_logical_date_iso
 from backend.utils.child_detection import detect_children_in_brief
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Royal Dispatch API")
 
@@ -75,7 +78,11 @@ def post_brief(req: BriefRequest):
             child_ids_to_store = [str(children[0][0])]
         else:
             child_names = [row[1] for row in children]
-            matched_names = detect_children_in_brief(req.text, child_names)
+            try:
+                matched_names = detect_children_in_brief(req.text, child_names)
+            except Exception:
+                logger.warning("post_brief: child detection failed, storing with child_id=None", exc_info=True)
+                matched_names = []
             name_to_id = {row[1]: str(row[0]) for row in children}
             child_ids_to_store = [name_to_id[n] for n in matched_names if n in name_to_id]
             if not child_ids_to_store:
@@ -290,6 +297,9 @@ def admin_list_children(user_id: str):
 def admin_create_child(user_id: str, req: CreateChildRequest):
     with get_conn() as conn:
         with conn.cursor() as cur:
+            cur.execute("SELECT id FROM users WHERE id = %s", (user_id,))
+            if not cur.fetchone():
+                raise HTTPException(status_code=404, detail="User not found")
             cur.execute(
                 """INSERT INTO children (parent_id, name, timezone, preferences)
                    VALUES (%s, %s, %s, %s)

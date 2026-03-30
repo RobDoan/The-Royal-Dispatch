@@ -1,6 +1,9 @@
 import json
+import logging
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage, SystemMessage
+
+logger = logging.getLogger(__name__)
 
 _llm = None
 
@@ -27,14 +30,18 @@ def detect_children_in_brief(brief_text: str, child_names: list[str]) -> list[st
         return []
     llm = get_llm()
     prompt = f"Children names: {json.dumps(child_names)}\n\nParent's note: {brief_text}"
-    response = llm.invoke([
-        SystemMessage(content=_DETECT_SYSTEM),
-        HumanMessage(content=prompt),
-    ])
     try:
+        response = llm.invoke([
+            SystemMessage(content=_DETECT_SYSTEM),
+            HumanMessage(content=prompt),
+        ])
         matched = json.loads(response.content.strip())
         if isinstance(matched, list):
             return [n for n in matched if n in child_names]
         return []
     except (json.JSONDecodeError, TypeError):
+        logger.warning("detect_children_in_brief: invalid JSON response from LLM", exc_info=True)
         return []
+    except Exception:
+        logger.warning("detect_children_in_brief: LLM call failed", exc_info=True)
+        raise

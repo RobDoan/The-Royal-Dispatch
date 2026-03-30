@@ -6,12 +6,15 @@ from backend.utils.time_utils import get_window_for_date
 def fetch_brief(state: RoyalStateOptional) -> dict:
     today = state["date"]
     timezone_str = state["timezone"]
+    child_id = state.get("child_id")
     start, end = get_window_for_date(today, timezone_str)
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT text FROM briefs WHERE created_at BETWEEN %s AND %s",
-                (start, end),
+                """SELECT text FROM briefs
+                   WHERE created_at BETWEEN %s AND %s
+                   AND child_id IS NOT DISTINCT FROM %s""",
+                (start, end, child_id),
             )
             rows = cur.fetchall()
     if rows:

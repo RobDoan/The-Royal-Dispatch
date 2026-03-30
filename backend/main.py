@@ -16,6 +16,7 @@ load_dotenv()
 from backend.graph import royal_graph
 from backend.db.client import get_conn
 from backend.utils.time_utils import get_logical_date_iso
+from backend.utils.child_detection import detect_children_in_brief
 
 app = FastAPI(title="Royal Dispatch API")
 
@@ -54,12 +55,40 @@ class StoryDetailResponse(BaseModel):
 @app.post("/brief")
 def post_brief(req: BriefRequest):
     today = date.today().isoformat()
+
+    # Resolve which child(ren) this brief is about
+    child_ids_to_store: list[str | None] = []
+
+    if req.user_id:
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT id, name FROM children WHERE parent_id = %s ORDER BY created_at",
+                    (req.user_id,),
+                )
+                children = cur.fetchall()  # list of (id, name)
+
+        if len(children) == 0:
+            child_ids_to_store = [None]
+        elif len(children) == 1:
+            child_ids_to_store = [str(children[0][0])]
+        else:
+            child_names = [row[1] for row in children]
+            matched_names = detect_children_in_brief(req.text, child_names)
+            name_to_id = {row[1]: str(row[0]) for row in children}
+            child_ids_to_store = [name_to_id[n] for n in matched_names if n in name_to_id]
+            if not child_ids_to_store:
+                child_ids_to_store = [None]
+    else:
+        child_ids_to_store = [None]
+
     with get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute(
-                "INSERT INTO briefs (date, text, user_id) VALUES (%s, %s, %s)",
-                (today, req.text, req.user_id),
-            )
+            for child_id in child_ids_to_store:
+                cur.execute(
+                    "INSERT INTO briefs (date, text, user_id, child_id) VALUES (%s, %s, %s, %s)",
+                    (today, req.text, req.user_id, child_id),
+                )
     return {"status": "ok"}
 
 

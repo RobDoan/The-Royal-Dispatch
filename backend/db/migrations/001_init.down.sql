@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS stories;
+DROP TABLE IF EXISTS briefs;
+DROP TABLE IF EXISTS user_preferences;
+DROP TABLE IF EXISTS users;

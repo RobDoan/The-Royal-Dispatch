@@ -121,14 +121,16 @@ def get_today_story_for_princess(
     type: str = Query(default="daily"),
     timezone: str = "America/Los_Angeles",
     language: str = "en",
+    user_id: str | None = None,
 ):
     today = get_logical_date_iso(timezone)
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """SELECT audio_url, story_text, royal_challenge FROM stories
-                   WHERE date = %s AND princess = %s AND story_type = %s AND language = %s""",
-                (today, princess, type, language),
+                   WHERE date = %s AND princess = %s AND story_type = %s AND language = %s
+                     AND user_id IS NOT DISTINCT FROM %s""",
+                (today, princess, type, language, user_id),
             )
             row = cur.fetchone()
     if not row:

@@ -9,7 +9,7 @@ class RoyalState(TypedDict):
     story_type: str    # "daily" | "life_lesson"
     situation: str     # teachable situation (life_lesson); "" for daily
     story_text: str    # generated letter with ElevenLabs audio tags
-    audio_url: str     # Supabase Storage public URL
+    audio_url: str     # S3 public URL
     language: str      # "en" | "vi"
     timezone: str      # user's IANA timezone, e.g. "America/Los_Angeles"
 

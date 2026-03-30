@@ -24,7 +24,7 @@ const mockChildren: api.Child[] = [
 ];
 
 beforeEach(() => {
-  vi.resetAllMocks();
+  vi.restoreAllMocks();
 });
 
 describe('UsersTable — row expand/collapse', () => {
@@ -67,9 +67,10 @@ describe('UsersTable — row expand/collapse', () => {
     render(<UsersTable initialUsers={mockUsers} />);
     fireEvent.click(screen.getByText('Quy'));
     await waitFor(() => expect(screen.getByText('Emma')).toBeInTheDocument());
+    vi.clearAllMocks();
     fireEvent.click(screen.getByText('Quy')); // collapse
     fireEvent.click(screen.getByText('Quy')); // re-expand
-    expect(api.listChildren).toHaveBeenCalledTimes(1);
+    expect(api.listChildren).toHaveBeenCalledTimes(0);
     expect(screen.getByText('Emma')).toBeInTheDocument();
   });
 
@@ -94,7 +95,7 @@ describe('UsersTable — add child', () => {
     fireEvent.change(screen.getByPlaceholderText('Child name'), { target: { value: 'Max' } });
     fireEvent.click(screen.getByText('+ Add'));
 
-    expect(api.createChild).toHaveBeenCalledWith('u1', 'Max');
+    await waitFor(() => expect(api.createChild).toHaveBeenCalledWith('u1', 'Max'));
     await waitFor(() => expect(screen.getByText('Max')).toBeInTheDocument());
     expect((screen.getByPlaceholderText('Child name') as HTMLInputElement).value).toBe('');
   });
@@ -125,7 +126,7 @@ describe('UsersTable — delete child', () => {
     await waitFor(() => expect(screen.getByText('Emma')).toBeInTheDocument());
 
     fireEvent.click(screen.getByTitle('Remove child'));
-    expect(api.deleteChild).toHaveBeenCalledWith('c1');
+    await waitFor(() => expect(api.deleteChild).toHaveBeenCalledWith('c1'));
     await waitFor(() => expect(screen.queryByText('Emma')).not.toBeInTheDocument());
   });
 

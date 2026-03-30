@@ -13,6 +13,8 @@ services:
     depends_on:
       qdrant:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   frontend:
     build:
@@ -73,6 +75,37 @@ services:
       timeout: 5s
       retries: 5
 
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: royal_dispatch
+      POSTGRES_USER: royal
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U royal"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    image: migrate/migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend/db/migrations:/migrations
+    command:
+      - "-path=/migrations"
+      - "-database=postgres://royal:${POSTGRES_PASSWORD}@postgres:5432/royal_dispatch?sslmode=disable"
+      - "up"
+    restart: on-failure
+
 volumes:
   n8n_data:
   qdrant_data:
+  postgres_data:

@@ -5,31 +5,30 @@
 
 ## Overview
 
-Deploy all Royal Dispatch services to a local k3s Kubernetes cluster using raw YAML manifests. No monitoring stack yet (Prometheus/Grafana deferred). Secrets managed via HashiCorp Vault + External Secrets Operator. Persistent storage via Longhorn. Ingress via Traefik (k3s built-in). Images served from a local Docker registry.
+Deploy all Royal Dispatch services to a Rackspace Spot Kubernetes cluster (cloudspace: `qdoan-5`) using raw YAML manifests. No monitoring stack yet (Prometheus/Grafana deferred). Secrets managed via HashiCorp Vault + External Secrets Operator. Persistent storage via Rackspace Spot storage classes (`ssd`/`sata`). Ingress via Traefik (k3s built-in). Images served from Docker Hub (`quydoan/`).
 
 ---
 
 ## Infrastructure Layer
 
-### k3s
+### k3s (Rackspace Spot)
 
-- Single-node local cluster
+- Managed cluster via Rackspace Spot cloudspace `qdoan-5`
 - Traefik pre-installed as ingress controller (kept as-is)
-- `local-path` StorageClass disabled; Longhorn set as the default StorageClass
-- containerd configured to trust local registry as insecure (`localhost:30500`)
+- No local registry needed — images pulled from Docker Hub
 
-### Local Docker Registry
+### Docker Hub Registry
 
-- `registry:2` image deployed in `registry` namespace
-- Exposed as NodePort `30500` on the host
-- Push: `docker push localhost:30500/<image>`
-- Pull (in-cluster): `localhost:30500/<image>`
+- Images pushed to `quydoan/royal-dispatch-<service>:latest`
+- No in-cluster registry required
+- `docker push quydoan/royal-dispatch-<service>:latest`
+- Pods reference images as `quydoan/royal-dispatch-<service>:latest`
 
-### Longhorn
+### Rackspace Spot Storage Classes
 
-- Installed via official manifests into `longhorn-system` namespace
-- Default StorageClass for all PVCs
-- Host prerequisites: `open-iscsi`, `nfs-common` installed on the k3s node
+- **`ssd`** — $0.06/GB/month — used for Postgres and Qdrant (I/O performance)
+- **`sata`** — $0.02/GB/month — used for n8n (light workload, cost-effective)
+- No Longhorn installation needed — storage classes are pre-provisioned by Rackspace Spot
 
 ### Vault
 
@@ -48,7 +47,7 @@ Deploy all Royal Dispatch services to a local k3s Kubernetes cluster using raw Y
 
 ## Application Services
 
-All custom app images are built locally and pushed to `localhost:30500/royal-dispatch/<service>:latest`.
+All custom app images are built locally and pushed to Docker Hub as `quydoan/royal-dispatch-<service>:latest`.
 
 ### Namespace: `royal-dispatch`
 
@@ -58,7 +57,7 @@ All custom app images are built locally and pushed to `localhost:30500/royal-dis
 |---|---|
 | Kind | Deployment |
 | Replicas | 1 |
-| Image | `localhost:30500/royal-dispatch/backend:latest` |
+| Image | `quydoan/royal-dispatch-backend:latest` |
 | Port | 8000 |
 | Service | ClusterIP |
 | Liveness/Readiness | `GET /docs` |
@@ -70,7 +69,7 @@ All custom app images are built locally and pushed to `localhost:30500/royal-dis
 |---|---|
 | Kind | Deployment |
 | Replicas | 1 |
-| Image | `localhost:30500/royal-dispatch/frontend:latest` |
+| Image | `quydoan/royal-dispatch-frontend:latest` |
 | Port | 3000 |
 | Service | ClusterIP |
 | Build arg | `NEXT_PUBLIC_API_URL` (baked at build time via `--build-arg`) |
@@ -83,7 +82,7 @@ All custom app images are built locally and pushed to `localhost:30500/royal-dis
 |---|---|
 | Kind | Deployment |
 | Replicas | 1 |
-| Image | `localhost:30500/royal-dispatch/admin:latest` |
+| Image | `quydoan/royal-dispatch-admin:latest` |
 | Port | 3001 |
 | Service | ClusterIP |
 | Build arg | `NEXT_PUBLIC_API_URL` (baked at build time via `--build-arg`) |
@@ -97,7 +96,7 @@ All custom app images are built locally and pushed to `localhost:30500/royal-dis
 | Image | `n8nio/n8n` (Docker Hub) |
 | Port | 5678 |
 | Service | ClusterIP |
-| PVC | Longhorn, 1Gi, `/home/node/.n8n` |
+| PVC | sata (Rackspace Spot), 1Gi, `/home/node/.n8n` |
 | Secrets via ESO | `TELEGRAM_BOT_TOKEN`, `PARENT_CHAT_ID`, `N8N_BASIC_AUTH_USER`, `N8N_BASIC_AUTH_PASSWORD` |
 
 ### Namespace: `qdrant`
@@ -109,7 +108,7 @@ All custom app images are built locally and pushed to `localhost:30500/royal-dis
 | Image | `qdrant/qdrant` (Docker Hub) |
 | Ports | 6333 (HTTP), 6334 (gRPC) |
 | Service | ClusterIP |
-| PVC | Longhorn, 5Gi, `/qdrant/storage` |
+| PVC | ssd (Rackspace Spot), 5Gi, `/qdrant/storage` |
 | Secrets | None |
 
 ### Namespace: `postgres`
@@ -123,7 +122,7 @@ All custom app images are built locally and pushed to `localhost:30500/royal-dis
 | Image | `postgres:16` |
 | Port | 5432 |
 | Service | ClusterIP (headless for StatefulSet) |
-| PVC | Longhorn, 5Gi, `/var/lib/postgresql/data` |
+| PVC | ssd (Rackspace Spot), 5Gi, `/var/lib/postgresql/data` |
 | Secrets via ESO | `POSTGRES_PASSWORD` |
 
 #### Migrate (DB migrations)
@@ -168,17 +167,11 @@ Services communicate via K8s cluster DNS:
 
 ```
 k8s/
-  registry/
-    namespace.yaml
-    deployment.yaml
-    service.yaml
   vault/
     namespace.yaml
     deployment.yaml
     service.yaml
     cluster-secret-store.yaml
-  longhorn/
-    longhorn.yaml          # official manifests
   royal-dispatch/
     namespace.yaml
   backend/
@@ -224,19 +217,15 @@ k8s/
 
 ## Deployment Order
 
-1. Install k3s
-2. Configure containerd for local registry
-3. Install Longhorn
-4. Deploy local registry
-5. Deploy Vault + configure secrets
-6. Deploy ESO + ClusterSecretStore
-7. Build & push images to local registry
-8. Deploy Postgres + run migrate Job
-9. Deploy Qdrant
-10. Deploy n8n
-11. Deploy backend, frontend, admin
-12. Apply Traefik IngressRoutes
-13. Update `/etc/hosts`
+1. Configure kubectl to point at Rackspace Spot cloudspace `qdoan-5`
+2. Deploy Vault + configure secrets
+3. Deploy ESO + ClusterSecretStore
+4. Build & push images to Docker Hub (`docker push quydoan/royal-dispatch-<service>:latest`)
+5. Deploy Postgres + run migrate Job
+6. Deploy Qdrant
+7. Deploy n8n
+8. Deploy backend, frontend, admin
+9. Apply Traefik IngressRoutes
 
 ---
 

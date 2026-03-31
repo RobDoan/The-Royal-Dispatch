@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Deploy all Royal Dispatch services to a local k3s cluster with Vault-managed secrets, Longhorn storage, Traefik ingress, and a local Docker registry.
+**Goal:** Deploy all Royal Dispatch services to Rackspace Spot (cloudspace: `qdoan-5`) with Vault-managed secrets, Rackspace Spot storage classes (`ssd`/`sata`), Traefik ingress, and Docker Hub images.
 
-**Architecture:** Raw YAML manifests in `k8s/` organized by service. Infrastructure installed first (k3s → Longhorn → registry → Vault → ESO), then stateful services (Postgres, Qdrant, n8n), then app services (backend, frontend, admin), then ingress.
+**Architecture:** Raw YAML manifests in `k8s/` organized by service. Infrastructure first (Vault → ESO), then stateful services (Postgres, Qdrant, n8n), then app services (backend, frontend, admin), then ingress.
 
-**Tech Stack:** k3s, Longhorn 1.7, HashiCorp Vault (dev mode), External Secrets Operator, Traefik v2 (built into k3s), registry:2, kubectl
+**Tech Stack:** Rackspace Spot k3s, HashiCorp Vault (dev mode), External Secrets Operator, Traefik v2 (built into k3s), Docker Hub (`quydoan/`), kubectl
 
 ---
 
@@ -14,9 +14,6 @@
 
 | File | Purpose |
 |---|---|
-| `k8s/registry/namespace.yaml` | `registry` namespace |
-| `k8s/registry/deployment.yaml` | registry:2 deployment |
-| `k8s/registry/service.yaml` | NodePort 30500 |
 | `k8s/vault/namespace.yaml` | `vault` namespace |
 | `k8s/vault/deployment.yaml` | Vault dev mode |
 | `k8s/vault/service.yaml` | ClusterIP on 8200 |
@@ -24,17 +21,17 @@
 | `k8s/external-secrets/cluster-secret-store.yaml` | ClusterSecretStore → Vault |
 | `k8s/royal-dispatch/namespace.yaml` | `royal-dispatch` namespace |
 | `k8s/postgres/namespace.yaml` | `postgres` namespace |
-| `k8s/postgres/statefulset.yaml` | postgres:16 StatefulSet + Longhorn PVC |
+| `k8s/postgres/statefulset.yaml` | postgres:16 StatefulSet + ssd PVC |
 | `k8s/postgres/service.yaml` | Headless ClusterIP |
 | `k8s/postgres/externalsecret.yaml` | Pulls POSTGRES_PASSWORD from Vault |
 | `k8s/migrate/configmap.yaml` | SQL migration files as ConfigMap |
 | `k8s/migrate/job.yaml` | migrate/migrate Job with pg_isready init container |
 | `k8s/qdrant/namespace.yaml` | `qdrant` namespace |
-| `k8s/qdrant/pvc.yaml` | Longhorn 5Gi PVC |
+| `k8s/qdrant/pvc.yaml` | ssd 5Gi PVC |
 | `k8s/qdrant/deployment.yaml` | qdrant/qdrant |
 | `k8s/qdrant/service.yaml` | ClusterIP on 6333/6334 |
 | `k8s/n8n/namespace.yaml` | `n8n` namespace |
-| `k8s/n8n/pvc.yaml` | Longhorn 1Gi PVC |
+| `k8s/n8n/pvc.yaml` | sata 1Gi PVC |
 | `k8s/n8n/deployment.yaml` | n8nio/n8n |
 | `k8s/n8n/service.yaml` | ClusterIP on 5678 |
 | `k8s/n8n/externalsecret.yaml` | Pulls n8n secrets from Vault |
@@ -55,208 +52,36 @@
 
 ---
 
-## Task 1: Install k3s and configure containerd for local registry
+## Task 1: Configure kubectl for Rackspace Spot
 
 **Files:**
 - No repo files — system-level setup
 
-- [ ] **Step 1: Install k3s**
+- [ ] **Step 1: Download kubeconfig from Rackspace Spot**
 
-```bash
-curl -sfL https://get.k3s.io | sh -
-```
-
-Wait for node to be ready:
-```bash
-sudo kubectl get nodes
-```
-Expected: `STATUS=Ready`
-
-- [ ] **Step 2: Set up kubeconfig for your user**
+In the Rackspace Spot UI, go to cloudspace `qdoan-5` → Overview → Download kubeconfig.
 
 ```bash
 mkdir -p ~/.kube
-sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
-sudo chown $USER ~/.kube/config
+cp ~/Downloads/qdoan-5-kubeconfig.yaml ~/.kube/config
 chmod 600 ~/.kube/config
 ```
 
-Verify:
+- [ ] **Step 2: Verify cluster access**
+
 ```bash
 kubectl get nodes
 ```
-Expected: one node, `STATUS=Ready`
+Expected: one or more nodes with `STATUS=Ready`
 
-- [ ] **Step 3: Configure containerd to trust the local registry as insecure**
-
-```bash
-sudo mkdir -p /etc/rancher/k3s
-sudo tee /etc/rancher/k3s/registries.yaml <<'EOF'
-mirrors:
-  "localhost:30500":
-    endpoint:
-      - "http://localhost:30500"
-EOF
-```
-
-Restart k3s to apply:
-```bash
-sudo systemctl restart k3s
-```
-
-Wait for node to be ready again:
-```bash
-kubectl get nodes
-```
-Expected: `STATUS=Ready`
-
-- [ ] **Step 4: Install host prerequisites for Longhorn**
-
-```bash
-sudo apt-get install -y open-iscsi nfs-common
-sudo systemctl enable --now iscsid
-```
-
-Verify:
-```bash
-sudo systemctl is-active iscsid
-```
-Expected: `active`
-
----
-
-## Task 2: Install Longhorn and set as default StorageClass
-
-**Files:**
-- No repo files — applied directly from official URL
-
-- [ ] **Step 1: Apply Longhorn v1.7.2 official manifests**
-
-```bash
-kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/v1.7.2/deploy/longhorn.yaml
-```
-
-- [ ] **Step 2: Wait for Longhorn pods to be ready**
-
-```bash
-kubectl -n longhorn-system rollout status deploy/longhorn-manager
-kubectl -n longhorn-system rollout status deploy/longhorn-driver-deployer
-```
-Expected: `successfully rolled out`
-
-- [ ] **Step 3: Patch local-path StorageClass to not be the default**
-
-```bash
-kubectl patch storageclass local-path \
-  -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
-```
-
-- [ ] **Step 4: Patch Longhorn StorageClass to be the default**
-
-```bash
-kubectl patch storageclass longhorn \
-  -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
-```
-
-Verify:
 ```bash
 kubectl get storageclass
 ```
-Expected: `longhorn` has `(default)`, `local-path` does not.
+Expected: `ssd` and `sata` storage classes listed.
 
 ---
 
-## Task 3: Deploy local Docker registry
-
-**Files:**
-- Create: `k8s/registry/namespace.yaml`
-- Create: `k8s/registry/deployment.yaml`
-- Create: `k8s/registry/service.yaml`
-
-- [ ] **Step 1: Write namespace**
-
-```yaml
-# k8s/registry/namespace.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: registry
-```
-
-- [ ] **Step 2: Write deployment**
-
-```yaml
-# k8s/registry/deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: registry
-  namespace: registry
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: registry
-  template:
-    metadata:
-      labels:
-        app: registry
-    spec:
-      containers:
-        - name: registry
-          image: registry:2
-          ports:
-            - containerPort: 5000
-          env:
-            - name: REGISTRY_STORAGE_DELETE_ENABLED
-              value: "true"
-```
-
-- [ ] **Step 3: Write service**
-
-```yaml
-# k8s/registry/service.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: registry
-  namespace: registry
-spec:
-  selector:
-    app: registry
-  type: NodePort
-  ports:
-    - port: 5000
-      targetPort: 5000
-      nodePort: 30500
-```
-
-- [ ] **Step 4: Apply**
-
-```bash
-kubectl apply -f k8s/registry/namespace.yaml
-kubectl apply -f k8s/registry/deployment.yaml
-kubectl apply -f k8s/registry/service.yaml
-```
-
-- [ ] **Step 5: Verify registry is reachable**
-
-```bash
-kubectl -n registry rollout status deploy/registry
-curl http://localhost:30500/v2/
-```
-Expected: `{}`
-
-- [ ] **Step 6: Commit**
-
-```bash
-git add k8s/registry/
-git commit -m "chore: add local Docker registry manifests"
-```
-
----
-
-## Task 4: Deploy Vault in dev mode and populate secrets
+## Task 2: Deploy Vault in dev mode and populate secrets
 
 **Files:**
 - Create: `k8s/vault/namespace.yaml`
@@ -569,7 +394,7 @@ spec:
         name: postgres-data
       spec:
         accessModes: ["ReadWriteOnce"]
-        storageClassName: longhorn
+        storageClassName: ssd
         resources:
           requests:
             storage: 5Gi
@@ -621,7 +446,7 @@ Expected: `accepting connections`
 
 ```bash
 git add k8s/postgres/
-git commit -m "chore: add Postgres StatefulSet with Longhorn PVC and Vault secrets"
+git commit -m "chore: add Postgres StatefulSet with ssd PVC and Vault secrets"
 ```
 
 ---
@@ -845,7 +670,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: longhorn
+  storageClassName: ssd
   resources:
     requests:
       storage: 5Gi
@@ -934,7 +759,7 @@ Expected: `{"title":"qdrant - vector search engine","version":"..."}`
 
 ```bash
 git add k8s/qdrant/
-git commit -m "chore: add Qdrant deployment with Longhorn PVC"
+git commit -m "chore: add Qdrant deployment with ssd PVC"
 ```
 
 ---
@@ -970,7 +795,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: longhorn
+  storageClassName: sata
   resources:
     requests:
       storage: 1Gi
@@ -1113,7 +938,7 @@ Expected: `successfully rolled out`
 
 ```bash
 git add k8s/n8n/
-git commit -m "chore: add n8n deployment with Longhorn PVC and Vault secrets"
+git commit -m "chore: add n8n deployment with sata PVC and Vault secrets"
 ```
 
 ---
@@ -1205,7 +1030,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: localhost:30500/royal-dispatch/backend:latest
+          image: quydoan/royal-dispatch-backend:latest
           ports:
             - containerPort: 8000
           env:
@@ -1281,8 +1106,8 @@ spec:
 
 From the repo root:
 ```bash
-docker build -f backend/Dockerfile -t localhost:30500/royal-dispatch/backend:latest .
-docker push localhost:30500/royal-dispatch/backend:latest
+docker build -f backend/Dockerfile -t quydoan/royal-dispatch-backend:latest .
+docker push quydoan/royal-dispatch-backend:latest
 ```
 
 - [ ] **Step 6: Apply and verify**
@@ -1355,9 +1180,9 @@ RUN \
 docker build \
   --build-arg NEXT_PUBLIC_API_URL=http://api.royal.local \
   -f frontend/Dockerfile \
-  -t localhost:30500/royal-dispatch/frontend:latest \
+  -t quydoan/royal-dispatch-frontend:latest \
   ./frontend
-docker push localhost:30500/royal-dispatch/frontend:latest
+docker push quydoan/royal-dispatch-frontend:latest
 ```
 
 - [ ] **Step 3: Write frontend deployment**
@@ -1381,7 +1206,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: localhost:30500/royal-dispatch/frontend:latest
+          image: quydoan/royal-dispatch-frontend:latest
           ports:
             - containerPort: 3000
           env:
@@ -1468,9 +1293,9 @@ RUN npm run build
 docker build \
   --build-arg NEXT_PUBLIC_API_URL=http://api.royal.local \
   -f admin/Dockerfile \
-  -t localhost:30500/royal-dispatch/admin:latest \
+  -t quydoan/royal-dispatch-admin:latest \
   ./admin
-docker push localhost:30500/royal-dispatch/admin:latest
+docker push quydoan/royal-dispatch-admin:latest
 ```
 
 - [ ] **Step 3: Write admin deployment**
@@ -1494,7 +1319,7 @@ spec:
     spec:
       containers:
         - name: admin
-          image: localhost:30500/royal-dispatch/admin:latest
+          image: quydoan/royal-dispatch-admin:latest
           ports:
             - containerPort: 3001
           env:

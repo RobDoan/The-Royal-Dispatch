@@ -9,10 +9,12 @@ class RoyalState(TypedDict):
     story_type: str    # "daily" | "life_lesson"
     situation: str     # teachable situation (life_lesson); "" for daily
     story_text: str    # generated letter with ElevenLabs audio tags
-    audio_url: str     # Supabase Storage public URL
+    audio_url: str     # S3 public URL
     language: str      # "en" | "vi"
     timezone: str      # user's IANA timezone, e.g. "America/Los_Angeles"
 
 class RoyalStateOptional(RoyalState, total=False):
     royal_challenge: str | None  # only written by generate_life_lesson; absent for daily
     memories: str                # formatted memory context; empty string if none available
+    user_id: str | None          # UUID of the requesting user; None for unauthenticated requests
+    child_id: str | None         # UUID of the child this story is for; None if unresolved

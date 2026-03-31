@@ -1,6 +1,26 @@
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import MagicMock, patch
+from datetime import datetime
+
+_UNSET = object()
+
+
+def _make_mock_conn(mocker, module_path, fetchone=_UNSET, fetchall=_UNSET):
+    """Patch get_conn in the given module and return a configured mock cursor."""
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    mock_ctx = MagicMock()
+    mock_ctx.__enter__ = MagicMock(return_value=mock_conn)
+    mock_ctx.__exit__ = MagicMock(return_value=False)
+    mocker.patch(module_path, return_value=mock_ctx)
+    if fetchone is not _UNSET:
+        mock_cursor.fetchone.return_value = fetchone
+    if fetchall is not _UNSET:
+        mock_cursor.fetchall.return_value = fetchall
+    return mock_cursor
 
 
 def make_client(mocker):
@@ -10,9 +30,7 @@ def make_client(mocker):
 
 
 def test_list_users_returns_empty_list(mocker):
-    mock_sb = MagicMock()
-    mock_sb.table.return_value.select.return_value.order.return_value.execute.return_value.data = []
-    mocker.patch("backend.main.get_supabase_client", return_value=mock_sb)
+    _make_mock_conn(mocker, "backend.main.get_conn", fetchall=[])
     client = make_client(mocker)
     response = client.get("/admin/users")
     assert response.status_code == 200
@@ -20,11 +38,9 @@ def test_list_users_returns_empty_list(mocker):
 
 
 def test_list_users_returns_rows(mocker):
-    mock_sb = MagicMock()
-    mock_sb.table.return_value.select.return_value.order.return_value.execute.return_value.data = [
-        {"id": "uuid-1", "name": "Quy", "telegram_chat_id": 12345, "token": "tk_abc", "created_at": "2026-01-01T00:00:00Z"},
-    ]
-    mocker.patch("backend.main.get_supabase_client", return_value=mock_sb)
+    _make_mock_conn(mocker, "backend.main.get_conn", fetchall=[
+        ("uuid-1", "Quy", 12345, "tk_abc", datetime(2026, 1, 1)),
+    ])
     client = make_client(mocker)
     response = client.get("/admin/users")
     assert response.status_code == 200
@@ -32,10 +48,8 @@ def test_list_users_returns_rows(mocker):
 
 
 def test_create_user_returns_created_user(mocker):
-    created = {"id": "uuid-1", "name": "Quy", "telegram_chat_id": 12345, "token": "tk_abc12345678def90", "created_at": "2026-01-01T00:00:00Z"}
-    mock_sb = MagicMock()
-    mock_sb.table.return_value.insert.return_value.execute.return_value.data = [created]
-    mocker.patch("backend.main.get_supabase_client", return_value=mock_sb)
+    _make_mock_conn(mocker, "backend.main.get_conn",
+                    fetchone=("uuid-1", "Quy", 12345, "tk_abc12345678def90", datetime(2026, 1, 1)))
     mocker.patch("backend.main.secrets.token_hex", return_value="abc12345678def90")
     client = make_client(mocker)
     response = client.post("/admin/users", json={"name": "Quy", "telegram_chat_id": 12345})
@@ -50,29 +64,22 @@ def test_create_user_rejects_missing_name(mocker):
 
 
 def test_delete_user_returns_no_content(mocker):
-    mock_sb = MagicMock()
-    mock_sb.table.return_value.delete.return_value.eq.return_value.execute.return_value.data = [{"id": "uuid-1"}]
-    mocker.patch("backend.main.get_supabase_client", return_value=mock_sb)
+    _make_mock_conn(mocker, "backend.main.get_conn", fetchone=("uuid-1",))
     client = make_client(mocker)
     response = client.delete("/admin/users/uuid-1")
     assert response.status_code == 204
 
 
 def test_delete_user_returns_404_when_not_found(mocker):
-    mock_sb = MagicMock()
-    mock_sb.table.return_value.delete.return_value.eq.return_value.execute.return_value.data = []
-    mocker.patch("backend.main.get_supabase_client", return_value=mock_sb)
+    _make_mock_conn(mocker, "backend.main.get_conn", fetchone=None)
     client = make_client(mocker)
     response = client.delete("/admin/users/nonexistent-id")
     assert response.status_code == 404
 
 
 def test_get_preferences_returns_config(mocker):
-    mock_sb = MagicMock()
-    mock_sb.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
-        {"user_id": "uuid-1", "config": {"favorite_princesses": ["elsa", "belle"]}}
-    ]
-    mocker.patch("backend.main.get_supabase_client", return_value=mock_sb)
+    _make_mock_conn(mocker, "backend.main.get_conn",
+                    fetchone=("uuid-1", {"favorite_princesses": ["elsa", "belle"]}))
     client = make_client(mocker)
     response = client.get("/admin/users/uuid-1/preferences")
     assert response.status_code == 200
@@ -80,9 +87,7 @@ def test_get_preferences_returns_config(mocker):
 
 
 def test_get_preferences_returns_404_when_not_found(mocker):
-    mock_sb = MagicMock()
-    mock_sb.table.return_value.select.return_value.eq.return_value.execute.return_value.data = []
-    mocker.patch("backend.main.get_supabase_client", return_value=mock_sb)
+    _make_mock_conn(mocker, "backend.main.get_conn", fetchone=None)
     client = make_client(mocker)
     response = client.get("/admin/users/uuid-999/preferences")
     assert response.status_code == 404
@@ -90,11 +95,8 @@ def test_get_preferences_returns_404_when_not_found(mocker):
 
 def test_put_preferences_upserts_and_returns_config(mocker):
     config = {"favorite_princesses": ["ariel"]}
-    mock_sb = MagicMock()
-    mock_sb.table.return_value.upsert.return_value.execute.return_value.data = [
-        {"user_id": "uuid-1", "config": config}
-    ]
-    mocker.patch("backend.main.get_supabase_client", return_value=mock_sb)
+    _make_mock_conn(mocker, "backend.main.get_conn",
+                    fetchone=("uuid-1", config))
     client = make_client(mocker)
     response = client.put("/admin/users/uuid-1/preferences", json={"config": config})
     assert response.status_code == 200
@@ -112,17 +114,11 @@ def test_list_personas_returns_persona_ids(mocker):
 
 
 def test_get_user_by_token_returns_user(mocker):
-    users_mock = MagicMock()
-    users_mock.select.return_value.eq.return_value.execute.return_value.data = [
-        {"id": "uuid-1", "name": "Quy", "token": "tk_abc"}
+    mock_cursor = _make_mock_conn(mocker, "backend.main.get_conn")
+    mock_cursor.fetchone.side_effect = [
+        ("uuid-1", "Quy"),
+        ({"favorite_princesses": ["elsa"]},),
     ]
-    prefs_mock = MagicMock()
-    prefs_mock.select.return_value.eq.return_value.execute.return_value.data = [
-        {"user_id": "uuid-1", "config": {"favorite_princesses": ["elsa"]}}
-    ]
-    mock_sb = MagicMock()
-    mock_sb.table.side_effect = lambda t: users_mock if t == "users" else prefs_mock
-    mocker.patch("backend.main.get_supabase_client", return_value=mock_sb)
     client = make_client(mocker)
     response = client.get("/user/me?token=tk_abc")
     assert response.status_code == 200
@@ -131,20 +127,14 @@ def test_get_user_by_token_returns_user(mocker):
 
 
 def test_get_user_by_token_returns_404_for_unknown_token(mocker):
-    mock_sb = MagicMock()
-    mock_sb.table.return_value.select.return_value.eq.return_value.execute.return_value.data = []
-    mocker.patch("backend.main.get_supabase_client", return_value=mock_sb)
+    _make_mock_conn(mocker, "backend.main.get_conn", fetchone=None)
     client = make_client(mocker)
     response = client.get("/user/me?token=bad_token")
     assert response.status_code == 404
 
 
 def test_get_user_by_chat_id_returns_user(mocker):
-    mock_sb = MagicMock()
-    mock_sb.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
-        {"id": "uuid-1", "name": "Quy"}
-    ]
-    mocker.patch("backend.main.get_supabase_client", return_value=mock_sb)
+    _make_mock_conn(mocker, "backend.main.get_conn", fetchone=("uuid-1", "Quy"))
     client = make_client(mocker)
     response = client.get("/user/by-chat-id?chat_id=12345")
     assert response.status_code == 200
@@ -152,9 +142,7 @@ def test_get_user_by_chat_id_returns_user(mocker):
 
 
 def test_get_user_by_chat_id_returns_404_for_unknown(mocker):
-    mock_sb = MagicMock()
-    mock_sb.table.return_value.select.return_value.eq.return_value.execute.return_value.data = []
-    mocker.patch("backend.main.get_supabase_client", return_value=mock_sb)
+    _make_mock_conn(mocker, "backend.main.get_conn", fetchone=None)
     client = make_client(mocker)
     response = client.get("/user/by-chat-id?chat_id=99999")
     assert response.status_code == 404

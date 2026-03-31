@@ -1,14 +1,57 @@
 from backend.state import RoyalStateOptional
-from backend.db.client import get_supabase_client
+from backend.db.client import get_conn
+
 
 def store_result(state: RoyalStateOptional) -> dict:
-    client = get_supabase_client()
-    client.table("stories").upsert({
-        "date": state["date"],
-        "princess": state["princess"],
-        "story_type": state["story_type"],  # required field — always present
-        "story_text": state["story_text"],
-        "audio_url": state["audio_url"],
-        "royal_challenge": state.get("royal_challenge"),  # total=False field — absent for daily
-    }, on_conflict="date,princess,story_type").execute()
+    user_id = state.get("user_id")
+    child_id = state.get("child_id")
+    royal_challenge = state.get("royal_challenge")
+
+    if child_id is not None:
+        sql = """
+            INSERT INTO stories (date, princess, story_type, language, story_text, audio_url, royal_challenge, user_id, child_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (date, princess, story_type, language, child_id) WHERE child_id IS NOT NULL
+            DO UPDATE SET
+                story_text = EXCLUDED.story_text,
+                audio_url = EXCLUDED.audio_url,
+                royal_challenge = EXCLUDED.royal_challenge
+        """
+        params = (
+            state["date"], state["princess"], state["story_type"], state["language"],
+            state["story_text"], state["audio_url"], royal_challenge, user_id, child_id,
+        )
+    elif user_id is not None:
+        sql = """
+            INSERT INTO stories (date, princess, story_type, language, story_text, audio_url, royal_challenge, user_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (date, princess, story_type, language, user_id) WHERE user_id IS NOT NULL AND child_id IS NULL
+            DO UPDATE SET
+                story_text = EXCLUDED.story_text,
+                audio_url = EXCLUDED.audio_url,
+                royal_challenge = EXCLUDED.royal_challenge
+        """
+        params = (
+            state["date"], state["princess"], state["story_type"], state["language"],
+            state["story_text"], state["audio_url"], royal_challenge, user_id,
+        )
+    else:
+        sql = """
+            INSERT INTO stories (date, princess, story_type, language, story_text, audio_url, royal_challenge)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (date, princess, story_type, language) WHERE user_id IS NULL AND child_id IS NULL
+            DO UPDATE SET
+                story_text = EXCLUDED.story_text,
+                audio_url = EXCLUDED.audio_url,
+                royal_challenge = EXCLUDED.royal_challenge
+        """
+        params = (
+            state["date"], state["princess"], state["story_type"], state["language"],
+            state["story_text"], state["audio_url"], royal_challenge,
+        )
+
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql, params)
+
     return {"audio_url": state["audio_url"]}

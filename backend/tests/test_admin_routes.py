@@ -48,8 +48,11 @@ def test_list_users_returns_rows(mocker):
 
 
 def test_create_user_returns_created_user(mocker):
-    _make_mock_conn(mocker, "backend.routes.admin.get_conn",
-                    fetchone=("uuid-1", "Quy", 12345, "tk_abc12345678def90", datetime(2026, 1, 1)))
+    mock_cursor = _make_mock_conn(mocker, "backend.routes.admin.get_conn")
+    mock_cursor.fetchone.side_effect = [
+        None,  # Uniqueness check: no existing user
+        ("uuid-1", "Quy", 12345, "tk_abc12345678def90", datetime(2026, 1, 1)),  # INSERT result
+    ]
     mocker.patch("backend.routes.admin.secrets.token_hex", return_value="abc12345678def90")
     client = make_client(mocker)
     response = client.post("/admin/users", json={"name": "Quy", "telegram_chat_id": 12345})

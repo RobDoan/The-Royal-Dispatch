@@ -75,6 +75,11 @@ def admin_create_user(req: CreateUserRequest):
     token = "tk_" + secrets.token_hex(8)
     with get_conn() as conn:
         with conn.cursor() as cur:
+            # Check for existing chat id
+            cur.execute("SELECT id FROM users WHERE telegram_chat_id = %s", (req.telegram_chat_id,))
+            if cur.fetchone():
+                raise HTTPException(status_code=400, detail="Telegram chat ID already in use")
+
             cur.execute(
                 """INSERT INTO users (name, telegram_chat_id, token)
                    VALUES (%s, %s, %s)

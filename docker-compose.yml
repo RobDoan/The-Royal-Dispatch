@@ -7,12 +7,14 @@ services:
       - "8000:8000"
     environment:
       - PYTHONUNBUFFERED=1
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     env_file:
       - backend/.env
     restart: unless-stopped
     depends_on:
       qdrant:
-        condition: service_healthy
+        condition: service_started
       migrate:
         condition: service_completed_successfully
 
@@ -55,7 +57,8 @@ services:
       - N8N_BASIC_AUTH_PASSWORD=changeme
       - TELEGRAM_BOT_TOKEN=8739411539:AAH0aMqkShqkwG5vFjltkUJgzhxjoCgseAY
       - PARENT_CHAT_ID=5863873556
-      - BACKEND_URL=http://backend:8000
+      - BACKEND_URL=http://backend:8000      
+      - WEBHOOK_URL=https://n8n.quybits.com
     volumes:
       - n8n_data:/home/node/.n8n
     restart: unless-stopped
@@ -69,17 +72,12 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:6333/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   postgres:
     image: postgres:16
     environment:
-      POSTGRES_DB: royal_dispatch
-      POSTGRES_USER: royal
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -87,7 +85,7 @@ services:
       - "5432:5432"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U royal"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -101,7 +99,7 @@ services:
       - ./backend/db/migrations:/migrations
     command:
       - "-path=/migrations"
-      - "-database=postgres://royal:${POSTGRES_PASSWORD}@postgres:5432/royal_dispatch?sslmode=disable"
+      - "-database=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
       - "up"
     restart: on-failure
 

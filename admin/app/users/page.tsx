@@ -1,10 +1,10 @@
-import { listUsers } from '@/lib/api';
+import { listUsers, User } from '@/lib/api';
 import { UsersTable } from '@/components/UsersTable';
 
 export const dynamic = 'force-dynamic';
 
 export default async function UsersPage() {
-  let users = [];
+  let users: User[] = [];
   try {
     users = await listUsers();
   } catch {

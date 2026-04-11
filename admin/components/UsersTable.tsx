@@ -36,8 +36,8 @@ export function UsersTable({ initialUsers }: Props) {
       setNewToken(user.token);
       setName('');
       setChatId('');
-    } catch {
-      setError('Failed to create user. Check the Telegram chat ID is unique.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to create user.');
     } finally {
       setSubmitting(false);
     }

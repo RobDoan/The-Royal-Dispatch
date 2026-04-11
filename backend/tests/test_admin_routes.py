@@ -63,6 +63,16 @@ def test_create_user_rejects_missing_name(mocker):
     assert response.status_code == 422
 
 
+def test_create_user_fails_if_telegram_chat_id_exists(mocker):
+    # Mock connection to return an existing user when checking uniqueness
+    _make_mock_conn(mocker, "backend.routes.admin.get_conn",
+                    fetchone=("uuid-existing", "Existing User", 12345, "tk_existing", datetime(2026, 1, 1)))
+    client = make_client(mocker)
+    response = client.post("/admin/users", json={"name": "New User", "telegram_chat_id": 12345})
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Telegram chat ID already in use"
+
+
 def test_delete_user_returns_no_content(mocker):
     _make_mock_conn(mocker, "backend.routes.admin.get_conn", fetchone=("uuid-1",))
     client = make_client(mocker)

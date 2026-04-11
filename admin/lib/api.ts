@@ -42,7 +42,10 @@ export async function createUser(name: string, telegram_chat_id: number): Promis
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, telegram_chat_id }),
   });
-  if (!res.ok) throw new Error('Failed to create user');
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to create user');
+  }
   return res.json();
 }
 

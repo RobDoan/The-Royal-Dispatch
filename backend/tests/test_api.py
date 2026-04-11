@@ -25,13 +25,13 @@ def _make_mock_conn(mocker, module_path, fetchone=_UNSET, fetchall=_UNSET):
 
 @pytest.fixture
 def client(mocker):
-    mocker.patch("backend.main.royal_graph")
+    mocker.patch("backend.routes.stories.royal_graph")
     from backend.main import app
     return TestClient(app)
 
 
 def test_post_brief_stores_and_returns_ok(client, mocker):
-    _make_mock_conn(mocker, "backend.main.get_conn")
+    _make_mock_conn(mocker, "backend.routes.stories.get_conn")
     response = client.post("/brief", json={"text": "She shared her blocks today."})
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
@@ -40,8 +40,8 @@ def test_post_brief_stores_and_returns_ok(client, mocker):
 def test_post_story_triggers_graph_and_returns_audio_url(mocker):
     mock_graph = MagicMock()
     mock_graph.invoke.return_value = {"audio_url": "https://royal-audio.s3.us-east-1.amazonaws.com/audio.mp3"}
-    _make_mock_conn(mocker, "backend.main.get_conn", fetchone=None)
-    with patch("backend.main.royal_graph", mock_graph):
+    _make_mock_conn(mocker, "backend.routes.stories.get_conn", fetchone=None)
+    with patch("backend.routes.stories.royal_graph", mock_graph):
         from backend.main import app
         from fastapi.testclient import TestClient
         c = TestClient(app)
@@ -52,7 +52,7 @@ def test_post_story_triggers_graph_and_returns_audio_url(mocker):
 
 def test_post_story_rejects_unknown_princess(mocker):
     mock_graph = MagicMock()
-    with patch("backend.main.royal_graph", mock_graph):
+    with patch("backend.routes.stories.royal_graph", mock_graph):
         from backend.main import app
         from fastapi.testclient import TestClient
         c = TestClient(app)
@@ -62,9 +62,9 @@ def test_post_story_rejects_unknown_princess(mocker):
 
 def test_post_story_returns_cached_audio_url_without_running_graph(mocker):
     mock_graph = MagicMock()
-    _make_mock_conn(mocker, "backend.main.get_conn",
+    _make_mock_conn(mocker, "backend.routes.stories.get_conn",
                     fetchone=("https://royal-audio.s3.us-east-1.amazonaws.com/elsa.mp3",))
-    with patch("backend.main.royal_graph", mock_graph):
+    with patch("backend.routes.stories.royal_graph", mock_graph):
         from backend.main import app
         from fastapi.testclient import TestClient
         c = TestClient(app)
@@ -75,10 +75,10 @@ def test_post_story_returns_cached_audio_url_without_running_graph(mocker):
 
 
 def test_get_today_stories_returns_cached_map(mocker):
-    _make_mock_conn(mocker, "backend.main.get_conn",
+    _make_mock_conn(mocker, "backend.routes.stories.get_conn",
                     fetchall=[("elsa", "https://royal-audio.s3.us-east-1.amazonaws.com/elsa.mp3")])
     mock_graph = MagicMock()
-    with patch("backend.main.royal_graph", mock_graph):
+    with patch("backend.routes.stories.royal_graph", mock_graph):
         from backend.main import app
         from fastapi.testclient import TestClient
         c = TestClient(app)
@@ -88,11 +88,11 @@ def test_get_today_stories_returns_cached_map(mocker):
 
 
 def test_get_story_today_princess_returns_story(mocker):
-    _make_mock_conn(mocker, "backend.main.get_conn",
+    _make_mock_conn(mocker, "backend.routes.stories.get_conn",
                     fetchone=("https://royal-audio.s3.us-east-1.amazonaws.com/elsa.mp3",
                               "Dear Emma, [PROUD] today you were brave...", None))
     mock_graph = MagicMock()
-    with patch("backend.main.royal_graph", mock_graph):
+    with patch("backend.routes.stories.royal_graph", mock_graph):
         from backend.main import app
         from fastapi.testclient import TestClient
         c = TestClient(app)
@@ -103,9 +103,9 @@ def test_get_story_today_princess_returns_story(mocker):
 
 
 def test_get_story_today_princess_returns_404_when_not_generated(mocker):
-    _make_mock_conn(mocker, "backend.main.get_conn", fetchone=None)
+    _make_mock_conn(mocker, "backend.routes.stories.get_conn", fetchone=None)
     mock_graph = MagicMock()
-    with patch("backend.main.royal_graph", mock_graph):
+    with patch("backend.routes.stories.royal_graph", mock_graph):
         from backend.main import app
         from fastapi.testclient import TestClient
         c = TestClient(app)
@@ -116,8 +116,8 @@ def test_get_story_today_princess_returns_404_when_not_generated(mocker):
 def test_post_story_life_lesson_triggers_graph(mocker):
     mock_graph = MagicMock()
     mock_graph.invoke.return_value = {"audio_url": "https://royal-audio.s3.us-east-1.amazonaws.com/ll.mp3"}
-    _make_mock_conn(mocker, "backend.main.get_conn", fetchone=None)
-    with patch("backend.main.royal_graph", mock_graph):
+    _make_mock_conn(mocker, "backend.routes.stories.get_conn", fetchone=None)
+    with patch("backend.routes.stories.royal_graph", mock_graph):
         from backend.main import app
         from fastapi.testclient import TestClient
         c = TestClient(app)
@@ -128,11 +128,11 @@ def test_post_story_life_lesson_triggers_graph(mocker):
 
 
 def test_get_story_today_princess_life_lesson_returns_royal_challenge(mocker):
-    _make_mock_conn(mocker, "backend.main.get_conn",
+    _make_mock_conn(mocker, "backend.routes.stories.get_conn",
                     fetchone=("https://royal-audio.s3.us-east-1.amazonaws.com/elsa-ll.mp3",
                               "Once in Arendelle...", "Try sharing today."))
     mock_graph = MagicMock()
-    with patch("backend.main.royal_graph", mock_graph):
+    with patch("backend.routes.stories.royal_graph", mock_graph):
         from backend.main import app
         from fastapi.testclient import TestClient
         c = TestClient(app)
@@ -142,11 +142,11 @@ def test_get_story_today_princess_life_lesson_returns_royal_challenge(mocker):
 
 
 def test_get_story_today_princess_daily_returns_null_royal_challenge(mocker):
-    _make_mock_conn(mocker, "backend.main.get_conn",
+    _make_mock_conn(mocker, "backend.routes.stories.get_conn",
                     fetchone=("https://royal-audio.s3.us-east-1.amazonaws.com/elsa.mp3",
                               "Dear Emma...", None))
     mock_graph = MagicMock()
-    with patch("backend.main.royal_graph", mock_graph):
+    with patch("backend.routes.stories.royal_graph", mock_graph):
         from backend.main import app
         from fastapi.testclient import TestClient
         c = TestClient(app)

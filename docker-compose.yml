@@ -3,8 +3,29 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+    command:
+      - "uv"
+      - "run"
+      - "--directory"
+      - "backend"
+      - "python"
+      - "-m"
+      - "debugpy"
+      - "--listen"
+      - "0.0.0.0:5679"
+      - "-m"
+      - "uvicorn"
+      - "backend.main:app"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8000"
+      - "--reload"
     ports:
       - "8000:8000"
+      - "5679:5679"
+    volumes:
+      - ./backend:/app/backend
     environment:
       - PYTHONUNBUFFERED=1
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}

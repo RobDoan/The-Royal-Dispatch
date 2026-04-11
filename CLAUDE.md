@@ -14,20 +14,19 @@ The Royal Dispatch is a bedtime storytelling PWA that supports multiple children
 
 ```bash
 cd backend
-python -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
+uv sync
 
 # Run dev server
-uvicorn main:app --reload --port 8000
+uv run uvicorn main:app --reload --port 8000
 
 # Run all tests
-pytest tests/ -v
+uv run pytest tests/ -v
 
 # Run a single test file
-pytest tests/test_nodes/test_generate_story.py -v
+uv run pytest tests/test_nodes/test_generate_story.py -v
 
 # Run a single test
-pytest tests/test_nodes/test_generate_story.py::test_generate_story_returns_text_with_audio_tags -v
+uv run pytest tests/test_nodes/test_generate_story.py::test_generate_story_returns_text_with_audio_tags -v
 ```
 
 ### Frontend (Next.js)

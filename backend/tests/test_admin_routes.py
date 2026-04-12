@@ -161,3 +161,29 @@ def test_get_user_by_chat_id_returns_404_for_unknown(mocker):
     client = make_client(mocker)
     response = client.get("/user/by-chat-id?chat_id=99999")
     assert response.status_code == 404
+
+
+def test_post_story_without_user_id(mocker):
+    mock_cursor = _make_mock_conn(mocker, "backend.routes.stories.get_conn")
+    mock_cursor.fetchone.return_value = None
+
+    client = make_client(mocker)
+    mock_graph = mocker.patch("backend.routes.stories.royal_graph")
+    mock_graph.invoke.return_value = {"audio_url": "https://s3.example.com/story.mp3"}
+
+    response = client.post("/story", json={
+        "princess": "elsa",
+        "child_id": "child-uuid-1",
+    })
+    assert response.status_code == 200
+    assert response.json()["audio_url"] == "https://s3.example.com/story.mp3"
+
+
+def test_get_story_detail_without_user_id(mocker):
+    _make_mock_conn(mocker, "backend.routes.stories.get_conn",
+                    fetchone=("https://s3.example.com/story.mp3", "Once upon a time...", "Be brave!"))
+    client = make_client(mocker)
+    response = client.get("/story/today/elsa?type=daily&child_id=child-uuid-1")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["story_text"] == "Once upon a time..."

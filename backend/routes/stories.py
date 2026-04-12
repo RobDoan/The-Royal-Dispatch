@@ -27,7 +27,6 @@ class StoryRequest(BaseModel):
     story_type: Literal["daily", "life_lesson"] = "daily"
     date: str | None = None
     timezone: str = "America/Los_Angeles"
-    user_id: str | None = None
     child_id: str | None = None
 
 
@@ -52,7 +51,9 @@ def post_brief(req: BriefRequest):
         with get_conn() as conn:
             with conn.cursor() as cur:
                 cur.execute(
-                    "SELECT id, name FROM children WHERE parent_id = %s ORDER BY created_at",
+                    """SELECT c.id, c.name FROM children c
+                       JOIN user_children uc ON c.id = uc.child_id
+                       WHERE uc.user_id = %s ORDER BY c.created_at""",
                     (req.user_id,),
                 )
                 children = cur.fetchall()  # list of (id, name)
@@ -93,9 +94,9 @@ def post_story(req: StoryRequest):
             cur.execute(
                 """SELECT audio_url FROM stories
                    WHERE date = %s AND princess = %s AND story_type = %s
-                     AND language = %s AND user_id IS NOT DISTINCT FROM %s
+                     AND language = %s
                      AND child_id IS NOT DISTINCT FROM %s""",
-                (story_date, req.princess, req.story_type, req.language, req.user_id, req.child_id),
+                (story_date, req.princess, req.story_type, req.language, req.child_id),
             )
             row = cur.fetchone()
     if row:
@@ -112,7 +113,6 @@ def post_story(req: StoryRequest):
         "audio_url": "",
         "language": req.language,
         "timezone": req.timezone,
-        "user_id": req.user_id,
         "child_id": req.child_id,
     }
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
@@ -145,7 +145,6 @@ def get_today_story_for_princess(
     type: str = Query(default="daily"),
     timezone: str = "America/Los_Angeles",
     language: str = "en",
-    user_id: str | None = None,
     child_id: str | None = None,
 ):
     today = get_logical_date_iso(timezone)
@@ -154,9 +153,8 @@ def get_today_story_for_princess(
             cur.execute(
                 """SELECT audio_url, story_text, royal_challenge FROM stories
                    WHERE date = %s AND princess = %s AND story_type = %s AND language = %s
-                     AND user_id IS NOT DISTINCT FROM %s
                      AND child_id IS NOT DISTINCT FROM %s""",
-                (today, princess, type, language, user_id, child_id),
+                (today, princess, type, language, child_id),
             )
             row = cur.fetchone()
     if not row:

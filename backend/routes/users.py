@@ -32,7 +32,9 @@ def get_user_by_token(token: str = Query(...)):
             if not user_row:
                 raise HTTPException(status_code=404, detail="User not found")
             cur.execute(
-                "SELECT id, name, preferences FROM children WHERE parent_id = %s ORDER BY created_at",
+                """SELECT c.id, c.name, c.preferences FROM children c
+                   JOIN user_children uc ON c.id = uc.child_id
+                   WHERE uc.user_id = %s ORDER BY c.created_at""",
                 (str(user_row[0]),),
             )
             child_rows = cur.fetchall()

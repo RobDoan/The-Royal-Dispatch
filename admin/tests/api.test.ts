@@ -46,18 +46,18 @@ describe('deleteUser', () => {
 });
 
 describe('updatePreferences', () => {
-  it('PUTs config and returns updated prefs', async () => {
-    const prefs = { user_id: 'u1', config: { favorite_princesses: ['elsa'] } };
+  it('PUTs preferences and returns updated prefs', async () => {
+    const prefs = { child_id: 'c1', preferences: { favorite_princesses: ['elsa'] } };
     global.fetch = vi.fn().mockResolvedValueOnce({
       ok: true,
       json: async () => prefs,
     } as Response);
 
     const { updatePreferences } = await import('@/lib/api');
-    const result = await updatePreferences('u1', { favorite_princesses: ['elsa'] });
+    const result = await updatePreferences('c1', { favorite_princesses: ['elsa'] });
     expect(result).toEqual(prefs);
     expect(fetch).toHaveBeenCalledWith(
-      `${API_URL}/admin/users/u1/preferences`,
+      `${API_URL}/admin/children/c1/preferences`,
       expect.objectContaining({ method: 'PUT' }),
     );
   });

@@ -13,7 +13,7 @@ describe('CharactersPicker', () => {
   it('renders all persona chips', () => {
     render(
       <CharactersPicker
-        userId="u1"
+        childId="c1"
         personas={personas}
         initialSelected={[]}
         onSave={vi.fn()}
@@ -28,7 +28,7 @@ describe('CharactersPicker', () => {
   it('shows initially selected chips as active', () => {
     render(
       <CharactersPicker
-        userId="u1"
+        childId="c1"
         personas={personas}
         initialSelected={['elsa', 'belle']}
         onSave={vi.fn()}
@@ -41,14 +41,14 @@ describe('CharactersPicker', () => {
     const onSave = vi.fn();
     render(
       <CharactersPicker
-        userId="u1"
+        childId="c1"
         personas={personas}
         initialSelected={[]}
         onSave={onSave}
       />
     );
     fireEvent.click(screen.getByTestId('chip-elsa'));
-    expect(onSave).toHaveBeenCalledWith('u1', ['elsa']);
+    expect(onSave).toHaveBeenCalledWith('c1', ['elsa']);
     expect(screen.getByText('1 / 5 selected')).toBeInTheDocument();
   });
 
@@ -61,7 +61,7 @@ describe('CharactersPicker', () => {
     ];
     render(
       <CharactersPicker
-        userId="u1"
+        childId="c1"
         personas={fivePersonas}
         initialSelected={['elsa', 'belle', 'cinderella', 'ariel', 'rapunzel']}
         onSave={onSave}
@@ -78,14 +78,14 @@ describe('CharactersPicker', () => {
     const onSave = vi.fn();
     render(
       <CharactersPicker
-        userId="u1"
+        childId="c1"
         personas={personas}
         initialSelected={['elsa']}
         onSave={onSave}
       />
     );
     fireEvent.click(screen.getByTestId('chip-elsa'));
-    expect(onSave).toHaveBeenCalledWith('u1', []);
+    expect(onSave).toHaveBeenCalledWith('c1', []);
     expect(screen.getByText('0 / 5 selected')).toBeInTheDocument();
   });
 });

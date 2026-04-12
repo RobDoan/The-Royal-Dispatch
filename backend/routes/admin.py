@@ -28,12 +28,12 @@ class UserResponse(BaseModel):
 
 
 class PreferencesResponse(BaseModel):
-    user_id: str
-    config: dict
+    child_id: str
+    preferences: dict
 
 
 class UpdatePreferencesRequest(BaseModel):
-    config: dict
+    preferences: dict
 
 
 class PersonaResponse(BaseModel):
@@ -152,29 +152,30 @@ def admin_delete_child(child_id: str):
 
 # ── Preferences ──────────────────────────────────────────────────────────────
 
-@router.get("/users/{user_id}/preferences", response_model=PreferencesResponse)
-def admin_get_preferences(user_id: str):
+@router.get("/children/{child_id}/preferences", response_model=PreferencesResponse)
+def admin_get_preferences(child_id: str):
     with get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT user_id, config FROM user_preferences WHERE user_id = %s", (user_id,))
+            cur.execute("SELECT id, preferences FROM children WHERE id = %s", (child_id,))
             row = cur.fetchone()
     if not row:
-        raise HTTPException(status_code=404, detail="Preferences not found")
-    return {"user_id": str(row[0]), "config": row[1]}
+        raise HTTPException(status_code=404, detail="Child not found")
+    return {"child_id": str(row[0]), "preferences": row[1]}
 
 
-@router.put("/users/{user_id}/preferences", response_model=PreferencesResponse)
-def admin_update_preferences(user_id: str, req: UpdatePreferencesRequest):
+@router.put("/children/{child_id}/preferences", response_model=PreferencesResponse)
+def admin_update_preferences(child_id: str, req: UpdatePreferencesRequest):
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                """INSERT INTO user_preferences (user_id, config) VALUES (%s, %s)
-                   ON CONFLICT (user_id) DO UPDATE SET config = EXCLUDED.config
-                   RETURNING user_id, config""",
-                (user_id, json.dumps(req.config)),
+                """UPDATE children SET preferences = %s WHERE id = %s
+                   RETURNING id, preferences""",
+                (json.dumps(req.preferences), child_id),
             )
             row = cur.fetchone()
-    return {"user_id": str(row[0]), "config": row[1]}
+    if not row:
+        raise HTTPException(status_code=404, detail="Child not found")
+    return {"child_id": str(row[0]), "preferences": row[1]}
 
 
 # ── Personas ─────────────────────────────────────────────────────────────────

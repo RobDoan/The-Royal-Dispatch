@@ -6,10 +6,16 @@ from backend.db.client import get_conn
 router = APIRouter(prefix="/user")
 
 
+class ChildInfo(BaseModel):
+    id: str
+    name: str
+    preferences: dict
+
+
 class UserMeResponse(BaseModel):
     user_id: str
     name: str
-    config: dict
+    children: list[ChildInfo]
 
 
 class UserByChatIdResponse(BaseModel):
@@ -25,10 +31,16 @@ def get_user_by_token(token: str = Query(...)):
             user_row = cur.fetchone()
             if not user_row:
                 raise HTTPException(status_code=404, detail="User not found")
-            cur.execute("SELECT config FROM user_preferences WHERE user_id = %s", (str(user_row[0]),))
-            pref_row = cur.fetchone()
-    config = pref_row[0] if pref_row else {}
-    return {"user_id": str(user_row[0]), "name": user_row[1], "config": config}
+            cur.execute(
+                "SELECT id, name, preferences FROM children WHERE parent_id = %s ORDER BY created_at",
+                (str(user_row[0]),),
+            )
+            child_rows = cur.fetchall()
+    children = [
+        {"id": str(r[0]), "name": r[1], "preferences": r[2]}
+        for r in child_rows
+    ]
+    return {"user_id": str(user_row[0]), "name": user_row[1], "children": children}
 
 
 @router.get("/by-chat-id", response_model=UserByChatIdResponse)

@@ -11,9 +11,9 @@ export interface User {
   created_at: string;
 }
 
-export interface UserPreferences {
-  user_id: string;
-  config: {
+export interface ChildPreferences {
+  child_id: string;
+  preferences: {
     favorite_princesses?: string[];
     [key: string]: unknown;
   };
@@ -57,17 +57,17 @@ export async function deleteUser(id: string): Promise<void> {
   if (!res.ok) throw new Error('Failed to delete user');
 }
 
-export async function getPreferences(userId: string): Promise<UserPreferences> {
-  const res = await fetch(`${API_URL}/admin/users/${userId}/preferences`);
+export async function getPreferences(childId: string): Promise<ChildPreferences> {
+  const res = await fetch(`${API_URL}/admin/children/${childId}/preferences`);
   if (!res.ok) throw new Error('Failed to get preferences');
   return res.json();
 }
 
-export async function updatePreferences(userId: string, config: Record<string, unknown>): Promise<UserPreferences> {
-  const res = await fetch(`${API_URL}/admin/users/${userId}/preferences`, {
+export async function updatePreferences(childId: string, preferences: Record<string, unknown>): Promise<ChildPreferences> {
+  const res = await fetch(`${API_URL}/admin/children/${childId}/preferences`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ config }),
+    body: JSON.stringify({ preferences }),
   });
   if (!res.ok) throw new Error('Failed to update preferences');
   return res.json();

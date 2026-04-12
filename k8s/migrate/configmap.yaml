@@ -98,3 +98,12 @@ data:
     ALTER TABLE stories DROP COLUMN IF EXISTS child_id;
     ALTER TABLE briefs DROP COLUMN IF EXISTS child_id;
     DROP TABLE IF EXISTS children;
+
+  003_drop_user_preferences.up.sql: |
+    DROP TABLE IF EXISTS user_preferences;
+
+  003_drop_user_preferences.down.sql: |
+    CREATE TABLE user_preferences (
+        user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        config JSONB NOT NULL DEFAULT '{}'
+    );

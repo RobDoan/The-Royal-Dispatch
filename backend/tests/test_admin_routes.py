@@ -187,3 +187,58 @@ def test_get_story_detail_without_user_id(mocker):
     assert response.status_code == 200
     data = response.json()
     assert data["story_text"] == "Once upon a time..."
+
+
+def test_list_children_returns_children_with_users(mocker):
+    mock_cursor = _make_mock_conn(mocker, "backend.routes.admin.get_conn")
+    mock_cursor.fetchall.return_value = [
+        ("child-1", "Emma", "America/Los_Angeles", {}, datetime(2026, 1, 1),
+         "user-1", "Alice", "mom"),
+    ]
+    client = make_client(mocker)
+    response = client.get("/admin/children")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["name"] == "Emma"
+    assert len(data[0]["users"]) == 1
+    assert data[0]["users"][0]["role"] == "mom"
+
+
+def test_create_child_standalone(mocker):
+    _make_mock_conn(mocker, "backend.routes.admin.get_conn",
+                    fetchone=("child-1", "Emma", "America/Los_Angeles", {}, datetime(2026, 1, 1)))
+    client = make_client(mocker)
+    response = client.post("/admin/children", json={"name": "Emma"})
+    assert response.status_code == 201
+    assert response.json()["name"] == "Emma"
+
+
+def test_link_user_to_child(mocker):
+    mock_cursor = _make_mock_conn(mocker, "backend.routes.admin.get_conn")
+    mock_cursor.fetchone.side_effect = [
+        ("Emma",),
+        None,
+        ("user-1", "child-1", "mom", datetime(2026, 1, 1)),
+    ]
+    client = make_client(mocker)
+    response = client.post("/admin/children/child-1/users", json={"user_id": "user-1", "role": "mom"})
+    assert response.status_code == 201
+
+
+def test_link_user_to_child_name_conflict(mocker):
+    mock_cursor = _make_mock_conn(mocker, "backend.routes.admin.get_conn")
+    mock_cursor.fetchone.side_effect = [
+        ("Emma",),
+        ("other-child",),
+    ]
+    client = make_client(mocker)
+    response = client.post("/admin/children/child-1/users", json={"user_id": "user-1", "role": "mom"})
+    assert response.status_code == 409
+
+
+def test_unlink_user_from_child(mocker):
+    _make_mock_conn(mocker, "backend.routes.admin.get_conn", fetchone=("user-1", "child-1"))
+    client = make_client(mocker)
+    response = client.delete("/admin/children/child-1/users/user-1")
+    assert response.status_code == 204

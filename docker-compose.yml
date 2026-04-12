@@ -3,24 +3,9 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    command:
-      - "uv"
-      - "run"
-      - "--directory"
-      - "backend"
-      - "python"
-      - "-m"
-      - "debugpy"
-      - "--listen"
-      - "0.0.0.0:5679"
-      - "-m"
-      - "uvicorn"
-      - "backend.main:app"
-      - "--host"
-      - "0.0.0.0"
-      - "--port"
-      - "8000"
-      - "--reload"
+    command: >
+      sh -c "cd backend && uv add debugpy && cd /app &&
+      uv run --directory backend python -m debugpy --listen 0.0.0.0:5679 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload"
     ports:
       - "8000:8000"
       - "5679:5679"
@@ -47,6 +32,7 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
+      - INTERNAL_API_URL=http://backend:8000
     env_file:
       - ./frontend/.env.local
     restart: unless-stopped
@@ -61,6 +47,7 @@ services:
       - "3001:3001"
     environment:
       - NODE_ENV=production
+      - INTERNAL_API_URL=http://backend:8000
     env_file:
       - ./admin/.env.local
     restart: unless-stopped
@@ -78,7 +65,7 @@ services:
       - N8N_BASIC_AUTH_PASSWORD=changeme
       - TELEGRAM_BOT_TOKEN=8739411539:AAH0aMqkShqkwG5vFjltkUJgzhxjoCgseAY
       - PARENT_CHAT_ID=5863873556
-      - BACKEND_URL=http://backend:8000      
+      - BACKEND_URL=http://backend:8000
       - WEBHOOK_URL=https://n8n.quybits.com
     volumes:
       - n8n_data:/home/node/.n8n

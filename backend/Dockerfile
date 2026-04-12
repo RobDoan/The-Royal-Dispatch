@@ -14,6 +14,9 @@ COPY backend/ backend/
 # Install dependencies using uv
 RUN cd backend && uv sync --frozen
 
+# Ensure 'backend' is importable as a package from /app
+ENV PYTHONPATH=/app
+
 EXPOSE 8000
 
 # Start FastAPI server

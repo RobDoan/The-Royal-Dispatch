@@ -32,7 +32,7 @@ def client(mocker):
 
 def test_post_brief_stores_and_returns_ok(client, mocker):
     _make_mock_conn(mocker, "backend.routes.stories.get_conn")
-    response = client.post("/brief", json={"text": "She shared her blocks today."})
+    response = client.post("/brief", json={"text": "She shared her blocks today.", "user_id": "test-user-id"})
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
 

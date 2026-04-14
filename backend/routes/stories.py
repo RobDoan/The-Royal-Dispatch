@@ -18,7 +18,7 @@ router = APIRouter()
 
 class BriefRequest(BaseModel):
     text: str
-    user_id: str | None = None
+    user_id: str
 
 
 class StoryRequest(BaseModel):
@@ -47,34 +47,31 @@ def post_brief(req: BriefRequest):
     # Resolve which child(ren) this brief is about
     child_ids_to_store: list[str | None] = []
 
-    if req.user_id:
-        with get_conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """SELECT c.id, c.name FROM children c
-                       JOIN user_children uc ON c.id = uc.child_id
-                       WHERE uc.user_id = %s ORDER BY c.created_at""",
-                    (req.user_id,),
-                )
-                children = cur.fetchall()  # list of (id, name)
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """SELECT c.id, c.name FROM children c
+                   JOIN user_children uc ON c.id = uc.child_id
+                   WHERE uc.user_id = %s ORDER BY c.created_at""",
+                (req.user_id,),
+            )
+            children = cur.fetchall()  # list of (id, name)
 
-        if len(children) == 0:
-            child_ids_to_store = [None]
-        elif len(children) == 1:
-            child_ids_to_store = [str(children[0][0])]
-        else:
-            child_names = [row[1] for row in children]
-            try:
-                matched_names = detect_children_in_brief(req.text, child_names)
-            except Exception:
-                logger.warning("post_brief: child detection failed, storing with child_id=None", exc_info=True)
-                matched_names = []
-            name_to_id = {row[1]: str(row[0]) for row in children}
-            child_ids_to_store = [name_to_id[n] for n in matched_names if n in name_to_id]
-            if not child_ids_to_store:
-                child_ids_to_store = [None]
-    else:
+    if len(children) == 0:
         child_ids_to_store = [None]
+    elif len(children) == 1:
+        child_ids_to_store = [str(children[0][0])]
+    else:
+        child_names = [row[1] for row in children]
+        try:
+            matched_names = detect_children_in_brief(req.text, child_names)
+        except Exception:
+            logger.warning("post_brief: child detection failed, storing with child_id=None", exc_info=True)
+            matched_names = []
+        name_to_id = {row[1]: str(row[0]) for row in children}
+        child_ids_to_store = [name_to_id[n] for n in matched_names if n in name_to_id]
+        if not child_ids_to_store:
+            child_ids_to_store = [None]
 
     with get_conn() as conn:
         with conn.cursor() as cur:

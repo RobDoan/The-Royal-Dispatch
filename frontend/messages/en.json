@@ -24,5 +24,9 @@
     "title": "Story",
     "royalChallenge": "Your Royal Challenge",
     "writing": "{princess} is crafting your life lesson..."
+  },
+  "pickChild": {
+    "heading": "Who's reading tonight?",
+    "subheading": "Tap your name to begin"
   }
 }

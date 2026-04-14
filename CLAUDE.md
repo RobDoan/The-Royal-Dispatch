@@ -57,7 +57,7 @@ npx vitest run     # all admin tests
 
 ```bash
 docker compose up --build
-# Backend: :8000  Frontend: :3000  Admin: :3001  n8n: :5678  Qdrant: :6333  PostgreSQL: :5432
+# Backend: :8000  Frontend: :3000  Admin: :3001  n8n: :5678  Qdrant: :6333  PostgreSQL: :5432  MinIO: :9000/:9001
 ```
 
 ## Architecture
@@ -110,7 +110,7 @@ The "logical day" resets at 3 AM in the user's timezone (not midnight). `get_log
 - `frontend/CLAUDE.md` re-exports `frontend/AGENTS.md` — read it before writing frontend code: this Next.js version has breaking changes from training data. Check `node_modules/next/dist/docs/` for the actual API.
 ### Database (PostgreSQL)
 
-Tables: `users` (parents), `children` (linked to users), `briefs` (with child_id), and `stories` (with child_id). Multi-child uniqueness is handled via partial indexes. Migrations are versioned in `backend/db/migrations/` (managed by golang-migrate, runs automatically in Docker). Audio files stored in Amazon S3 (`S3_BUCKET`).
+Tables: `users` (parents), `children` (linked to users), `briefs` (with child_id), and `stories` (with child_id). Multi-child uniqueness is handled via partial indexes. Migrations are versioned in `backend/db/migrations/` (managed by golang-migrate, runs automatically in Docker). Audio files stored in MinIO (`S3_BUCKET`), an S3-compatible object store running as a Docker service.
 
 ### Admin UI
 
@@ -123,7 +123,7 @@ Tables: `users` (parents), `children` (linked to users), `briefs` (with child_id
 
 | File | Vars |
 |---|---|
-| `backend/.env` | `ANTHROPIC_API_KEY`, `ELEVENLABS_API_KEY`, `DATABASE_URL`, `POSTGRES_PASSWORD`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, `S3_BUCKET`, `QDRANT_URL`, `OPENAI_API_KEY` |
+| `backend/.env` | `ANTHROPIC_API_KEY`, `ELEVENLABS_API_KEY`, `DATABASE_URL`, `POSTGRES_PASSWORD`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_ENDPOINT_URL`, `S3_PUBLIC_URL`, `S3_BUCKET`, `QDRANT_URL`, `OPENAI_API_KEY` |
 | `frontend/.env.local` | `NEXT_PUBLIC_API_URL` |
 | `admin/.env.local` | `NEXT_PUBLIC_API_URL` |
 

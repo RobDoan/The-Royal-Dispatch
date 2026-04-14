@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Trash2, ChevronDown, ChevronRight } from 'lucide-react';
+import { Trash2, ChevronDown, ChevronRight, Link, Check } from 'lucide-react';
 import { createUser, deleteUser, type User } from '@/lib/api';
 
 interface LinkedChildInfo {
@@ -26,6 +26,17 @@ export function UsersTable({ initialUsers }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [newToken, setNewToken] = useState<string | null>(null);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
+  const [copiedUserId, setCopiedUserId] = useState<string | null>(null);
+
+  const FRONTEND_URL = process.env.NEXT_PUBLIC_FRONTEND_URL ?? 'http://localhost:3000';
+
+  function handleCopyLink(e: React.MouseEvent, token: string, userId: string) {
+    e.stopPropagation();
+    const link = `${FRONTEND_URL}?token=${encodeURIComponent(token)}`;
+    navigator.clipboard.writeText(link);
+    setCopiedUserId(userId);
+    setTimeout(() => setCopiedUserId(null), 2000);
+  }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -94,8 +105,8 @@ export function UsersTable({ initialUsers }: Props) {
 
       {newToken && (
         <div className="p-3 rounded-md bg-slate-800 border border-indigo-600 text-sm">
-          <span className="text-slate-400">User created. Share this token for the frontend URL: </span>
-          <code className="text-indigo-300 font-mono ml-1">{newToken}</code>
+          <span className="text-slate-400">User created. Share this link: </span>
+          <code className="text-indigo-300 font-mono ml-1 break-all">{FRONTEND_URL}?token={newToken}</code>
         </div>
       )}
 
@@ -131,13 +142,22 @@ export function UsersTable({ initialUsers }: Props) {
                     <code className="bg-slate-800 text-slate-300 text-xs px-2 py-1 rounded font-mono">{user.token}</code>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={(e) => handleDelete(e, user.id)}
-                      className="text-slate-500 hover:text-red-400 transition-colors p-1 rounded"
-                      title="Remove user"
-                    >
-                      <Trash2 size={15} />
-                    </button>
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={(e) => handleCopyLink(e, user.token, user.id)}
+                        className="text-slate-500 hover:text-indigo-400 transition-colors p-1 rounded"
+                        title="Copy shareable link"
+                      >
+                        {copiedUserId === user.id ? <Check size={15} className="text-green-400" /> : <Link size={15} />}
+                      </button>
+                      <button
+                        onClick={(e) => handleDelete(e, user.id)}
+                        className="text-slate-500 hover:text-red-400 transition-colors p-1 rounded"
+                        title="Remove user"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-right">
                     {expandedUserId === user.id

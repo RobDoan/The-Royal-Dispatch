@@ -19,14 +19,17 @@ def ready_state() -> RoyalState:
     )
 
 
-def test_synthesize_voice_uploads_to_s3_and_returns_url(ready_state, mocker):
+def test_synthesize_voice_uploads_and_returns_url(ready_state, mocker):
     mock_elevenlabs = MagicMock()
     mock_elevenlabs.text_to_speech.convert.return_value = iter([b"chunk1", b"chunk2"])
     mocker.patch("backend.nodes.synthesize_voice.get_elevenlabs_client", return_value=mock_elevenlabs)
 
     mock_s3 = MagicMock()
     mocker.patch("backend.nodes.synthesize_voice.get_storage", return_value=mock_s3)
-    mocker.patch.dict(os.environ, {"S3_BUCKET": "royal-audio", "AWS_REGION": "us-east-1"})
+    mocker.patch.dict(os.environ, {
+        "S3_BUCKET": "royal-audio",
+        "S3_PUBLIC_URL": "https://minio.quybits.com",
+    })
 
     result = synthesize_voice(ready_state)
 
@@ -34,7 +37,7 @@ def test_synthesize_voice_uploads_to_s3_and_returns_url(ready_state, mocker):
     call_kwargs = mock_s3.put_object.call_args[1]
     assert call_kwargs["Bucket"] == "royal-audio"
     assert call_kwargs["ContentType"] == "audio/mpeg"
-    assert result["audio_url"].startswith("https://royal-audio.s3.us-east-1.amazonaws.com/")
+    assert result["audio_url"].startswith("https://minio.quybits.com/royal-audio/")
 
 
 def test_synthesize_voice_daily_filename_format(ready_state, mocker):
@@ -48,7 +51,10 @@ def test_synthesize_voice_daily_filename_format(ready_state, mocker):
     mocker.patch("backend.nodes.synthesize_voice.get_elevenlabs_client", return_value=mock_elevenlabs)
     mock_s3 = MagicMock()
     mocker.patch("backend.nodes.synthesize_voice.get_storage", return_value=mock_s3)
-    mocker.patch.dict(os.environ, {"S3_BUCKET": "royal-audio", "AWS_REGION": "us-east-1"})
+    mocker.patch.dict(os.environ, {
+        "S3_BUCKET": "royal-audio",
+        "S3_PUBLIC_URL": "https://minio.quybits.com",
+    })
 
     synthesize_voice(ready_state)
 
@@ -71,7 +77,10 @@ def test_synthesize_voice_life_lesson_filename_includes_suffix(mocker):
     mocker.patch("backend.nodes.synthesize_voice.get_elevenlabs_client", return_value=mock_elevenlabs)
     mock_s3 = MagicMock()
     mocker.patch("backend.nodes.synthesize_voice.get_storage", return_value=mock_s3)
-    mocker.patch.dict(os.environ, {"S3_BUCKET": "royal-audio", "AWS_REGION": "us-east-1"})
+    mocker.patch.dict(os.environ, {
+        "S3_BUCKET": "royal-audio",
+        "S3_PUBLIC_URL": "https://minio.quybits.com",
+    })
 
     synthesize_voice(state)
 

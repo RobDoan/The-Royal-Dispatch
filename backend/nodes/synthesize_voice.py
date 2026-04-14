@@ -28,12 +28,12 @@ def synthesize_voice(state: RoyalStateOptional) -> dict:
     filename = f"{state['date']}-{state['princess']}-{state['language']}{suffix}.mp3"
 
     bucket = os.environ["S3_BUCKET"]
-    region = os.environ["AWS_REGION"]
+    public_url = os.environ["S3_PUBLIC_URL"]
     get_storage().put_object(
         Bucket=bucket,
         Key=filename,
         Body=audio_bytes,
         ContentType="audio/mpeg",
     )
-    audio_url = f"https://{bucket}.s3.{region}.amazonaws.com/{filename}"
+    audio_url = f"{public_url}/{bucket}/{filename}"
     return {"audio_url": audio_url}

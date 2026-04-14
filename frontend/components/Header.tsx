@@ -32,7 +32,7 @@ export function Header() {
         <div className="flex items-center gap-3 mt-2">
           <LanguageSelector value={locale as Language} onChange={handleLanguageChange} />
           <button
-            onClick={() => router.push(`/${locale}/pick-child`)}
+            onClick={() => router.push('/pick-child')}
             className="w-10 h-10 rounded-full border-2 border-white shadow-md overflow-hidden active:scale-95 transition-transform bg-gradient-to-br from-pink-200 to-purple-200 flex items-center justify-center"
           >
             <span className="text-sm font-black text-white">{initial}</span>

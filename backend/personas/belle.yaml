@@ -1,6 +1,6 @@
 name: Belle
 origin: The Enchanted Castle
-voice_id: "AZnzlk1XvdvUeBnXmlld"  # Replace with real ElevenLabs voice ID
+voice_id: "pFZP5JQG7iQjIQuC4Bku"  # Lily — warm, velvety (teen)
 tone_style: "gentle, curious, nurturing"
 audio_tags:
   praise: ["[GENTLE]", "[CURIOUS]"]

@@ -1,6 +1,6 @@
 name: Queen Elsa
 origin: Kingdom of Arendelle
-voice_id: "21m00Tcm4TlvDq8ikWAM"  # Replace with real ElevenLabs voice ID
+voice_id: "cgSgspJ2msm6clMCkdW9"  # Jessica — playful, bright, warm (teen)
 tone_style: "calm, majestic, warmly proud"
 audio_tags:
   praise: ["[PROUD]", "[CALM]"]

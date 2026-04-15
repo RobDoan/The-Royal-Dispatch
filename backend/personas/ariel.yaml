@@ -1,6 +1,6 @@
 name: Ariel
 origin: Under the Sea
-voice_id: "pNInz6obpgDQGcFmaJgB"  # Replace with real ElevenLabs voice ID
+voice_id: "FGY2WhTYpPnrIDTdsKH5"  # Laura — enthusiastic, sunny (teen)
 tone_style: "adventurous, expressive, joyful"
 audio_tags:
   praise: ["[EXCITED]", "[GENTLE]"]

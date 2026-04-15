@@ -24,32 +24,31 @@ export function PrincessCard({ princess, onClick, variant = 'poster', isLoading 
       <button
         onClick={() => onClick(princess.id)}
         disabled={isLoading}
-        className="block w-full bg-white rounded-2xl shadow-sm border border-[#F3F4F6] overflow-hidden text-left transition-transform duration-300 active:scale-95 disabled:opacity-70"
+        className="block w-full glass-card overflow-hidden text-left transition-all duration-300 active:scale-[0.96] disabled:opacity-70 hover:glass-card-hover"
       >
         {/* Image Area */}
-        <div className={`relative w-full ${isPoster ? 'aspect-square' : 'aspect-video'} bg-gray-50`}>
+        <div className={`relative w-full ${isPoster ? 'aspect-square' : 'aspect-video'} bg-black/20`}>
           <img
             src={princess.imageUrl}
             alt={princess.name}
             className="w-full h-full object-cover"
           />
-          {/* Top-right badge placeholder if needed */}
-          <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-sm">
+          <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/20 backdrop-blur-sm border border-white/10 flex items-center justify-center">
             <span className="text-sm">{princess.emoji}</span>
           </div>
         </div>
 
-        {/* Text Content Below */}
+        {/* Text Content */}
         <div className="p-3.5 flex items-center justify-between">
           <div>
-            <h3 className="text-gray-800 font-bold tracking-tight leading-tight text-sm mb-1" style={{ fontFamily: '"Quicksand", sans-serif' }}>
+            <h3 className="text-white font-bold tracking-tight leading-tight text-sm mb-1" style={{ fontFamily: 'var(--font-body)' }}>
               {princess.name}
             </h3>
-            <p className="text-gray-500 font-medium text-[11px] leading-snug line-clamp-2">
+            <p className="text-white/40 font-medium text-[11px] leading-snug line-clamp-2">
               {princess.origin}
             </p>
           </div>
-          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#F47F60] flex items-center justify-center text-white shadow-sm">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full gold-gradient-bg flex items-center justify-center text-[#1a0533] shadow-sm">
             {isLoading ? (
               <span className="animate-spin text-xs">✨</span>
             ) : (

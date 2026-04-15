@@ -5,29 +5,41 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Reference Royal Pastels Colors */
+  /* Enchanted Glassmorphism Palette */
+  --color-gold: #FFD700;
+  --color-gold-dark: #FFA500;
+  --color-rose: #FF85A1;
+  --color-rose-light: #FFB3C6;
+  --color-purple: #9370DB;
+  --color-sky: #7EC8E3;
+  --color-mint: #6EE7B7;
 
-  --color-primary-orange: #FF85A1; /* Rose (Mapped to existing utility) */
-  --color-primary-orange-light: #FFB3C6;
-  --color-surface: #FFFFFF;
+  /* Frontend Background */
+  --bg-gradient-start: #1a0533;
+  --bg-gradient-mid: #2d1b69;
+  --bg-gradient-end: #0f2b4a;
 
-  /* Royal Pastels */
-  --color-royal-primary: #F0E6FF; /* Soft Lavender */
-  --color-royal-secondary: #FFF4E0; /* Warm Cream */
-  --color-royal-accent-gold: #FFD700; /* Gold */
-  --color-royal-active: #FF85A1; /* Rose */
+  /* Glass Tokens */
+  --glass-bg: rgba(255, 255, 255, 0.08);
+  --glass-bg-hover: rgba(255, 255, 255, 0.12);
+  --glass-bg-active: rgba(255, 215, 0, 0.06);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-border-active: rgba(255, 215, 0, 0.2);
+  --glass-blur: 10px;
+  --glass-blur-heavy: 16px;
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 
-  /* Category Pills */
-  --color-cat-yellow: #FFF3D6;
-  --color-cat-blue: #E8F4FF;
-  --color-cat-purple: #F0E6FF;
-  --color-cat-peach: #FFEBE1;
-
-  --color-accent-mint: #E6F8F3;
-  --color-accent-rose: #FF85A1;
+  /* Princess Overlay Colors (unchanged) */
+  --princess-elsa: rgba(147, 197, 253, 0.25);
+  --princess-belle: rgba(252, 211, 77, 0.25);
+  --princess-cinderella: rgba(249, 168, 212, 0.25);
+  --princess-ariel: rgba(110, 231, 183, 0.25);
 
   /* Fonts */
-  --font-primary: 'Nunito', 'Quicksand', system-ui, sans-serif;
+  --font-body: 'Nunito', system-ui, sans-serif;
+  --font-heading: 'Georgia', serif;
+
+  /* shadcn Semantic (light mode — keep for shadcn compat) */
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -69,11 +81,11 @@
   --font-mono: var(--font-geist-mono);
 
   /* Custom theme colors */
-  --color-lavender-500: var(--color-primary-lavender);
-  --color-gold-500: var(--color-primary-gold);
-  --color-midnight-900: var(--color-secondary-midnight);
-  --color-mint-400: var(--color-accent-mint);
-  --color-rose-400: var(--color-accent-rose);
+  --color-gold-500: var(--color-gold);
+  --color-rose-400: var(--color-rose);
+  --color-purple-500: var(--color-purple);
+  --color-sky-400: var(--color-sky);
+  --color-mint-400: var(--color-mint);
 
   /* Animations */
   --animate-ken-burns: ken-burns 20s ease-in-out infinite alternate;
@@ -113,7 +125,7 @@
     100% { transform: scale(3); opacity: 0; border-width: 0px; }
   }
 
-  --font-heading: var(--font-sans);
+  --font-heading: 'Georgia', serif;
 
   --color-sidebar-ring: var(--sidebar-ring);
 
@@ -192,17 +204,67 @@
   .animate-burst {
     animation: burst 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
-  .glass-panel {
-    @apply bg-[var(--color-surface)] border-none shadow-[0_4px_30px_rgba(0,0,0,0.04)];
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
   }
-  .glass-pill {
-    @apply bg-[var(--color-surface)] shadow-[0_8px_32px_rgba(0,0,0,0.08)];
+  .glass-card-hover:hover {
+    background: var(--glass-bg-hover);
+    border-color: rgba(255, 255, 255, 0.18);
+  }
+  .glass-card-active {
+    background: var(--glass-bg-active);
+    border-color: var(--glass-border-active);
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.08);
+  }
+  .glass-nav {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(var(--glass-blur-heavy));
+    -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: var(--glass-shadow);
+  }
+  .glass-header {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .glass-toggle {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
   }
   .magical-glow {
-    box-shadow: 0 0 20px 2px var(--color-primary-orange);
+    box-shadow: 0 0 20px 2px var(--color-gold);
   }
   .animate-float {
     animation: float 4s ease-in-out infinite;
+  }
+  .sparkle-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-gold);
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+    animation: sparkle-pulse 1.5s ease-in-out infinite alternate;
+  }
+  @keyframes sparkle-pulse {
+    0% { opacity: 0.3; transform: scale(0.8); }
+    100% { opacity: 1; transform: scale(1.2); }
+  }
+  .gold-gradient-text {
+    background: linear-gradient(135deg, #FFD700, #FF85A1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .gold-gradient-bg {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
   }
 }
 
@@ -281,10 +343,10 @@
     @apply border-border outline-ring/50;
   }
   body {
-    background-color: var(--color-royal-secondary);
+    background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-mid), var(--bg-gradient-end));
     color: var(--foreground);
   }
   html {
-    @apply font-sans;
+    font-family: var(--font-body);
   }
 }

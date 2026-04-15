@@ -2,12 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Users, Star } from 'lucide-react';
+import { Users, Baby } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
-  { href: '/users', icon: Users, label: 'Connected Users' },
-  { href: '/characters', icon: Star, label: 'Favorite Characters' },
+  { href: '/children', icon: Baby, label: 'Children' },
+  { href: '/users', icon: Users, label: 'Users' },
 ];
 
 export function Sidebar() {

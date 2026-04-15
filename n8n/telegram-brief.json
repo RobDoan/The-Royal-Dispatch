@@ -3,25 +3,29 @@
   "nodes": [
     {
       "parameters": {
-        "updates": ["message"],
+        "updates": [
+          "message"
+        ],
         "additionalFields": {}
       },
-      "id": "node-telegram-trigger",
+      "id": "a2a97549-50b2-44a8-ab07-8b37e05a542d",
       "name": "Telegram Trigger",
       "type": "n8n-nodes-base.telegramTrigger",
       "typeVersion": 1.1,
-      "position": [240, 300],
+      "position": [
+        -1680,
+        928
+      ],
       "webhookId": "royal-dispatch-telegram",
       "credentials": {
         "telegramApi": {
-          "id": "telegram-cred-id",
-          "name": "Telegram Bot"
+          "id": "6b9KM3MrqkX0lsLl",
+          "name": "Telegram account"
         }
       }
     },
     {
       "parameters": {
-        "method": "GET",
         "url": "={{ $env.BACKEND_URL }}/user/by-chat-id?chat_id={{ $json.message.chat.id }}",
         "options": {
           "response": {
@@ -31,34 +35,45 @@
           }
         }
       },
-      "id": "node-lookup-user",
+      "id": "7f52cebb-fd9e-4011-9ff1-5b4406e00754",
       "name": "Lookup User",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [460, 300]
+      "position": [
+        -1456,
+        928
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json.statusCode }}",
               "rightValue": 200,
-              "operator": { "type": "number", "operation": "equals" }
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
             }
           ]
-        }
+        },
+        "options": {}
       },
-      "id": "node-sender-filter",
+      "id": "c2072a0d-dd37-4bf5-a980-5a69188a7595",
       "name": "Sender Filter",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [680, 300]
+      "position": [
+        -1248,
+        928
+      ]
     },
     {
       "parameters": {
-        "mode": "rules",
         "rules": {
           "values": [
             {
@@ -66,32 +81,39 @@
                 "conditions": [
                   {
                     "leftValue": "={{ $('Telegram Trigger').first().json.message.text }}",
-                    "operator": { "type": "string", "operation": "exists" }
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists"
+                    }
                   }
                 ]
-              },
-              "outputKey": "text"
+              }
             },
             {
               "conditions": {
                 "conditions": [
                   {
                     "leftValue": "={{ $('Telegram Trigger').first().json.message.voice }}",
-                    "operator": { "type": "object", "operation": "exists" }
+                    "operator": {
+                      "type": "object",
+                      "operation": "exists"
+                    }
                   }
                 ]
-              },
-              "outputKey": "voice"
+              }
             }
           ]
         },
-        "fallbackOutput": "none"
+        "options": {}
       },
-      "id": "node-type-switch",
+      "id": "98991758-da79-4803-b397-0af2367f01a8",
       "name": "Message Type Switch",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
-      "position": [900, 300]
+      "position": [
+        -1024,
+        928
+      ]
     },
     {
       "parameters": {
@@ -99,30 +121,34 @@
         "url": "={{ $env.BACKEND_URL }}/brief",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { text: $('Telegram Trigger').first().json.message.text } }}",
+        "jsonBody": "={{ JSON.stringify({ text: $('Telegram Trigger').first().json.message.text, user_id: $json.body.user_id}) }}",
         "options": {}
       },
-      "id": "node-post-brief-text",
+      "id": "93bbbf19-2001-4fac-9cc4-5caa06120750",
       "name": "Post Brief (text)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1120, 180]
+      "position": [
+        -800,
+        800
+      ]
     },
     {
       "parameters": {
-        "method": "GET",
         "url": "={{ 'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/getFile?file_id=' + $('Telegram Trigger').first().json.message.voice.file_id }}",
         "options": {}
       },
-      "id": "node-get-file-path",
+      "id": "80a68d13-3122-439d-ab16-748a83958e55",
       "name": "Get File Path",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1120, 420]
+      "position": [
+        -800,
+        1040
+      ]
     },
     {
       "parameters": {
-        "method": "GET",
         "url": "={{ 'https://api.telegram.org/file/bot' + $env.TELEGRAM_BOT_TOKEN + '/' + $json.result.file_path }}",
         "options": {
           "response": {
@@ -132,11 +158,14 @@
           }
         }
       },
-      "id": "node-download-binary",
+      "id": "bca51e4e-7913-43e3-9313-15c975f138b2",
       "name": "Download File Binary",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1340, 420]
+      "position": [
+        -576,
+        1040
+      ]
     },
     {
       "parameters": {
@@ -151,11 +180,7 @@
             {
               "parameterType": "formBinaryData",
               "name": "file",
-              "inputDataFieldName": "data",
-              "options": {
-                "filename": "voice.oga",
-                "contentType": "audio/ogg"
-              }
+              "inputDataFieldName": "data"
             },
             {
               "name": "model",
@@ -165,17 +190,14 @@
         },
         "options": {}
       },
-      "id": "node-whisper",
+      "id": "df859d09-baee-4f0f-8a56-8380f6ba9cbb",
       "name": "Whisper Transcribe",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1560, 420],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "openai-cred-id",
-          "name": "OpenAI"
-        }
-      }
+      "position": [
+        -368,
+        1040
+      ]
     },
     {
       "parameters": {
@@ -183,63 +205,150 @@
         "url": "={{ $env.BACKEND_URL }}/brief",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { text: $('Whisper Transcribe').first().json.text } }}",
+        "jsonBody": "={{ JSON.stringify({ text: $('Whisper Transcribe').first().json.text, user_id: $('Lookup User').first().json.body.id }) }}",
         "options": {}
       },
-      "id": "node-post-brief-voice",
+      "id": "13cb412a-0227-4652-8531-39d402e7bf08",
       "name": "Post Brief (voice)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1780, 420]
+      "position": [
+        -144,
+        1040
+      ]
     }
   ],
+  "pinData": {
+    "Telegram Trigger": [
+      {
+        "json": {
+          "update_id": 168668997,
+          "message": {
+            "message_id": 20,
+            "from": {
+              "id": 5863873556,
+              "is_bot": false,
+              "first_name": "Quy",
+              "last_name": "Doan",
+              "language_code": "en"
+            },
+            "chat": {
+              "id": 5863873556,
+              "first_name": "Quy",
+              "last_name": "Doan",
+              "type": "private"
+            },
+            "date": 1776201498,
+            "text": "Emma turn off all light before go to bed last night"
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
   "connections": {
     "Telegram Trigger": {
       "main": [
-        [{ "node": "Lookup User", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Lookup User",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Lookup User": {
       "main": [
-        [{ "node": "Sender Filter", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Sender Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Sender Filter": {
       "main": [
-        [{ "node": "Message Type Switch", "type": "main", "index": 0 }],
-        []
+        [
+          {
+            "node": "Message Type Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Message Type Switch": {
       "main": [
-        [{ "node": "Post Brief (text)", "type": "main", "index": 0 }],
-        [{ "node": "Get File Path", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Post Brief (text)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get File Path",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Get File Path": {
       "main": [
-        [{ "node": "Download File Binary", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Download File Binary",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Download File Binary": {
       "main": [
-        [{ "node": "Whisper Transcribe", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Whisper Transcribe",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Whisper Transcribe": {
       "main": [
-        [{ "node": "Post Brief (voice)", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Post Brief (voice)",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionTimeout": -1,
+    "availableInMCP": false,
+    "timeSavedPerExecution": 0
   },
-  "versionId": "2",
+  "versionId": "8688d683-a40b-4f97-b58e-26ecca08e1f5",
   "meta": {
-    "instanceId": "royal-dispatch"
+    "templateCredsSetupCompleted": true,
+    "instanceId": "723c281fb6a3a550548cac1fa9b115e752a52dd8bb3fd87319d99f45a111adff"
   },
-  "id": "royal-dispatch-telegram-brief",
+  "id": "hHFtsZuuw9wLKmcE",
   "tags": []
 }

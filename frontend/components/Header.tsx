@@ -3,16 +3,20 @@
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter, usePathname } from '@/i18n/navigation';
 import { LanguageSelector, type Language } from './LanguageSelector';
+import { useUser } from '@/hooks/useUser';
 
 export function Header() {
   const t = useTranslations('app');
   const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
+  const { selectedChild } = useUser();
 
   const handleLanguageChange = (newLang: Language) => {
     router.replace(pathname, { locale: newLang });
   };
+
+  const initial = selectedChild?.name?.charAt(0)?.toUpperCase() ?? '?';
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 pt-safe-top bg-white border-b-0">
@@ -27,8 +31,11 @@ export function Header() {
         </div>
         <div className="flex items-center gap-3 mt-2">
           <LanguageSelector value={locale as Language} onChange={handleLanguageChange} />
-          <button className="w-10 h-10 rounded-full border-2 border-white shadow-md overflow-hidden active:scale-95 transition-transform bg-[#F0E6FF]">
-            <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Princess&backgroundColor=F0E6FF" alt="Child Profile" className="w-full h-full object-cover scale-110" />
+          <button
+            onClick={() => router.push('/pick-child')}
+            className="w-10 h-10 rounded-full border-2 border-white shadow-md overflow-hidden active:scale-95 transition-transform bg-gradient-to-br from-pink-200 to-purple-200 flex items-center justify-center"
+          >
+            <span className="text-sm font-black text-white">{initial}</span>
           </button>
         </div>
       </div>

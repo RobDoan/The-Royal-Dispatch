@@ -6,6 +6,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { AudioPlayer } from '@/components/AudioPlayer';
 import { fetchStory, Princess } from '@/lib/api';
 import { PRINCESS_META, PRINCESS_OVERLAY, type PrincessId } from '@/lib/princesses';
+import { useUser } from '@/hooks/useUser';
 type PageState = 'polling' | 'ready' | 'timeout' | 'error';
 
 const POLL_INTERVAL_MS = 3000;
@@ -17,6 +18,7 @@ export default function StoryPlayPage() {
   const locale = useLocale();
   const t = useTranslations('app');
   const tStory = useTranslations('story');
+  const { selectedChild } = useUser();
 
   const princessId = (params.princess as PrincessId) ?? 'elsa';
   const meta = PRINCESS_META[princessId] ?? PRINCESS_META.elsa;
@@ -48,7 +50,7 @@ export default function StoryPlayPage() {
       }
 
       try {
-        const result = await fetchStory(princessId as Princess, 'life_lesson');
+        const result = await fetchStory(princessId as Princess, 'life_lesson', selectedChild?.id);
         if (stopped) return;
         stopPolling();
         setAudioUrl(result.audioUrl);
@@ -68,7 +70,7 @@ export default function StoryPlayPage() {
     intervalRef.current = setInterval(poll, POLL_INTERVAL_MS);
 
     return stopPolling;
-  }, [princessId]);
+  }, [princessId, selectedChild]);
 
   if (pageState === 'ready') {
     return (

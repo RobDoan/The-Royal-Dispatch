@@ -1,28 +1,42 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Trash2, ChevronDown, ChevronRight } from 'lucide-react';
-import { createUser, deleteUser, listChildren, createChild, deleteChild, type User, type Child } from '@/lib/api';
+import { Trash2, ChevronDown, ChevronRight, Link, Check } from 'lucide-react';
+import { createUser, deleteUser, type User } from '@/lib/api';
+
+interface LinkedChildInfo {
+  child_id: string;
+  child_name: string;
+  role: string | null;
+}
+
+interface UserWithChildren extends User {
+  children: LinkedChildInfo[];
+}
 
 interface Props {
-  initialUsers: User[];
+  initialUsers: UserWithChildren[];
 }
 
 export function UsersTable({ initialUsers }: Props) {
-  const [users, setUsers] = useState<User[]>(initialUsers);
+  const [users, setUsers] = useState<UserWithChildren[]>(initialUsers);
   const [name, setName] = useState('');
   const [chatId, setChatId] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newToken, setNewToken] = useState<string | null>(null);
-
-  // Children state
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
-  const [childrenByUser, setChildrenByUser] = useState<Record<string, Child[]>>({});
-  const [loadingChildren, setLoadingChildren] = useState<Set<string>>(new Set());
-  const [childError, setChildError] = useState<Record<string, string>>({});
-  const [newChildName, setNewChildName] = useState<Record<string, string>>({});
-  const [addingChild, setAddingChild] = useState<string | null>(null);
+  const [copiedUserId, setCopiedUserId] = useState<string | null>(null);
+
+  const FRONTEND_URL = process.env.NEXT_PUBLIC_FRONTEND_URL ?? 'http://localhost:3000';
+
+  function handleCopyLink(e: React.MouseEvent, token: string, userId: string) {
+    e.stopPropagation();
+    const link = `${FRONTEND_URL}?token=${encodeURIComponent(token)}`;
+    navigator.clipboard.writeText(link);
+    setCopiedUserId(userId);
+    setTimeout(() => setCopiedUserId(null), 2000);
+  }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -32,12 +46,12 @@ export function UsersTable({ initialUsers }: Props) {
     setNewToken(null);
     try {
       const user = await createUser(name.trim(), parseInt(chatId.trim(), 10));
-      setUsers((prev) => [...prev, user]);
+      setUsers((prev) => [...prev, { ...user, children: [] }]);
       setNewToken(user.token);
       setName('');
       setChatId('');
-    } catch {
-      setError('Failed to create user. Check the Telegram chat ID is unique.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to create user.');
     } finally {
       setSubmitting(false);
     }
@@ -52,56 +66,6 @@ export function UsersTable({ initialUsers }: Props) {
       if (expandedUserId === id) setExpandedUserId(null);
     } catch {
       setError('Failed to remove user.');
-    }
-  }
-
-  async function handleRowClick(userId: string) {
-    if (expandedUserId === userId) {
-      setExpandedUserId(null);
-      return;
-    }
-    setExpandedUserId(userId);
-    if (childrenByUser[userId] !== undefined) return; // already cached
-    setLoadingChildren((prev) => new Set(prev).add(userId));
-    try {
-      setChildError((prev) => ({ ...prev, [userId]: '' }));
-      const kids = await listChildren(userId);
-      setChildrenByUser((prev) => ({ ...prev, [userId]: kids }));
-    } catch {
-      setChildError((prev) => ({ ...prev, [userId]: 'Failed to load children.' }));
-    } finally {
-      setLoadingChildren((prev) => {
-        const next = new Set(prev);
-        next.delete(userId);
-        return next;
-      });
-    }
-  }
-
-  async function handleAddChild(userId: string) {
-    const childName = (newChildName[userId] ?? '').trim();
-    if (!childName) return;
-    setAddingChild(userId);
-    setChildError((prev) => ({ ...prev, [userId]: '' }));
-    try {
-      const child = await createChild(userId, childName);
-      setChildrenByUser((prev) => ({ ...prev, [userId]: [...(prev[userId] ?? []), child] }));
-      setNewChildName((prev) => ({ ...prev, [userId]: '' }));
-    } catch {
-      setChildError((prev) => ({ ...prev, [userId]: 'Failed to add child.' }));
-    } finally {
-      setAddingChild(null);
-    }
-  }
-
-  async function handleDeleteChild(e: React.MouseEvent, userId: string, childId: string) {
-    e.stopPropagation();
-    if (!confirm('Remove this child? This cannot be undone.')) return;
-    try {
-      await deleteChild(childId);
-      setChildrenByUser((prev) => ({ ...prev, [userId]: prev[userId].filter((c) => c.id !== childId) }));
-    } catch {
-      setChildError((prev) => ({ ...prev, [userId]: 'Failed to remove child.' }));
     }
   }
 
@@ -141,8 +105,8 @@ export function UsersTable({ initialUsers }: Props) {
 
       {newToken && (
         <div className="p-3 rounded-md bg-slate-800 border border-indigo-600 text-sm">
-          <span className="text-slate-400">User created. Share this token for the frontend URL: </span>
-          <code className="text-indigo-300 font-mono ml-1">{newToken}</code>
+          <span className="text-slate-400">User created. Share this link: </span>
+          <code className="text-indigo-300 font-mono ml-1 break-all">{FRONTEND_URL}?token={newToken}</code>
         </div>
       )}
 
@@ -169,7 +133,7 @@ export function UsersTable({ initialUsers }: Props) {
             {users.map((user) => (
               <React.Fragment key={user.id}>
                 <tr
-                  onClick={() => handleRowClick(user.id)}
+                  onClick={() => setExpandedUserId(expandedUserId === user.id ? null : user.id)}
                   className="border-b border-slate-800 last:border-0 hover:bg-slate-800/30 cursor-pointer"
                 >
                   <td className="px-4 py-3 text-slate-200 font-medium">{user.name}</td>
@@ -178,13 +142,22 @@ export function UsersTable({ initialUsers }: Props) {
                     <code className="bg-slate-800 text-slate-300 text-xs px-2 py-1 rounded font-mono">{user.token}</code>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={(e) => handleDelete(e, user.id)}
-                      className="text-slate-500 hover:text-red-400 transition-colors p-1 rounded"
-                      title="Remove user"
-                    >
-                      <Trash2 size={15} />
-                    </button>
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={(e) => handleCopyLink(e, user.token, user.id)}
+                        className="text-slate-500 hover:text-indigo-400 transition-colors p-1 rounded"
+                        title="Copy shareable link"
+                      >
+                        {copiedUserId === user.id ? <Check size={15} className="text-green-400" /> : <Link size={15} />}
+                      </button>
+                      <button
+                        onClick={(e) => handleDelete(e, user.id)}
+                        className="text-slate-500 hover:text-red-400 transition-colors p-1 rounded"
+                        title="Remove user"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-right">
                     {expandedUserId === user.id
@@ -195,54 +168,19 @@ export function UsersTable({ initialUsers }: Props) {
                 {expandedUserId === user.id && (
                   <tr key={`${user.id}-children`} className="border-b border-slate-800 bg-slate-800/20">
                     <td colSpan={5} className="px-8 py-3">
-                      {loadingChildren.has(user.id) && (
-                        <p className="text-sm text-slate-500">Loading…</p>
-                      )}
-                      {!loadingChildren.has(user.id) && childrenByUser[user.id] === undefined && childError[user.id] && (
-                        <p className="text-sm text-red-400">{childError[user.id]}</p>
-                      )}
-                      {!loadingChildren.has(user.id) && childrenByUser[user.id] !== undefined && (
-                        <div className="flex flex-col gap-2">
-                          {childError[user.id] && (
-                            <p className="text-sm text-red-400">{childError[user.id]}</p>
-                          )}
-                          {(childrenByUser[user.id] ?? []).length === 0 ? (
-                            <p className="text-sm text-slate-500">No children yet.</p>
-                          ) : (
-                            <div className="flex flex-col gap-1">
-                              {childrenByUser[user.id].map((child) => (
-                                <div key={child.id} className="flex items-center gap-2">
-                                  <span className="text-sm text-slate-300">{child.name}</span>
-                                  <button
-                                    onClick={(e) => handleDeleteChild(e, user.id, child.id)}
-                                    className="text-slate-500 hover:text-red-400 transition-colors p-1 rounded"
-                                    title="Remove child"
-                                  >
-                                    <Trash2 size={13} />
-                                  </button>
-                                </div>
-                              ))}
+                      <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Linked Children</h4>
+                      {user.children.length === 0 ? (
+                        <p className="text-sm text-slate-500">No children linked. Link children from the Children page.</p>
+                      ) : (
+                        <div className="flex flex-col gap-1">
+                          {user.children.map((child) => (
+                            <div key={child.child_id} className="flex items-center gap-2">
+                              <span className="text-sm text-slate-300">{child.child_name}</span>
+                              {child.role && (
+                                <span className="text-xs text-slate-500">({child.role})</span>
+                              )}
                             </div>
-                          )}
-                          <form
-                            onSubmit={(e) => { e.preventDefault(); handleAddChild(user.id); }}
-                            className="flex gap-2 items-center mt-1"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <input
-                              value={newChildName[user.id] ?? ''}
-                              onChange={(e) => setNewChildName((prev) => ({ ...prev, [user.id]: e.target.value }))}
-                              placeholder="Child name"
-                              className="px-3 py-1.5 rounded-md text-sm border bg-slate-900 border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-40"
-                            />
-                            <button
-                              type="submit"
-                              disabled={addingChild === user.id || !(newChildName[user.id] ?? '').trim()}
-                              className="px-3 py-1.5 rounded-md text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                              {addingChild === user.id ? 'Adding…' : '+ Add'}
-                            </button>
-                          </form>
+                          ))}
                         </div>
                       )}
                     </td>

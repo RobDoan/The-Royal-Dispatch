@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { requestStory } from '@/lib/api';
@@ -12,10 +13,20 @@ export default function StoryPage() {
   const locale = useLocale();
   const t = useTranslations('app');
   const tStory = useTranslations('story');
-  const { activePrincessIds } = useUser();
+  const { profile, selectedChild, activePrincessIds, loading } = useUser();
+
+  const needsChildPick = !loading && profile && profile.children.length > 0 && !selectedChild;
+
+  useEffect(() => {
+    if (needsChildPick) {
+      router.replace(`/${locale}/pick-child`);
+    }
+  }, [needsChildPick, router, locale]);
+
+  if (loading || needsChildPick) return null;
 
   async function handleTap(princessId: PrincessId) {
-    requestStory(princessId, locale as 'en' | 'vi', 'life_lesson');
+    requestStory(princessId, locale as 'en' | 'vi', 'life_lesson', selectedChild?.id);
     router.push(`/${locale}/story/${princessId}`);
   }
 

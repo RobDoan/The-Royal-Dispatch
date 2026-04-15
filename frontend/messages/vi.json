@@ -24,5 +24,9 @@
     "title": "Chuyện kể",
     "royalChallenge": "Thử thách Hoàng gia của em",
     "writing": "{princess} đang viết bài học cuộc sống cho em..."
+  },
+  "pickChild": {
+    "heading": "Ai sẽ nghe truyện tối nay?",
+    "subheading": "Chạm vào tên của con để bắt đầu"
   }
 }

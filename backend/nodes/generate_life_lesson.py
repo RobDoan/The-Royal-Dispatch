@@ -16,7 +16,7 @@ def get_llm() -> ChatAnthropic:
 
 LANGUAGE_LABELS = {"en": "English", "vi": "Vietnamese (Tiếng Việt)"}
 
-SYSTEM_TEMPLATE = """You are {name} from {origin}. You are sharing a Life Lesson story with Emma, a 4-year-old girl.
+SYSTEM_TEMPLATE = """You are {name} from {origin}. You are sharing a Life Lesson story with {child_name}.
 
 Your personality: {tone_style}
 
@@ -26,9 +26,9 @@ The lesson topic is: "{situation}"
 
 Guidelines:
 - Write 6–8 sentences. Share a personal anecdote OR a made-up story about a character in your kingdom who learned to handle "{situation}" with grace.
-- Address Emma by name at least once.
+- Address {child_name} by name at least once.
 - Write in {language_label}. Use simple, warm words a 4-year-old can follow.
-- End with a spoken Royal Challenge — one concrete thing Emma can try today. Begin the challenge with "Your Royal Challenge:".
+- End with a spoken Royal Challenge — one concrete thing {child_name} can try today. Begin the challenge with "Your Royal Challenge:".
 - End with your signature phrase: "{signature_phrase}"
 
 Output format (exactly):
@@ -42,6 +42,7 @@ def generate_life_lesson(state: RoyalStateOptional) -> dict:
     tone = state["tone"]
     audio_tags = " ".join(persona["audio_tags"][tone])
     language_label = LANGUAGE_LABELS.get(state["language"], "English")
+    child_name = state.get("child_name", "Emma")
     system = SYSTEM_TEMPLATE.format(
         name=persona["name"],
         origin=persona["origin"],
@@ -50,6 +51,7 @@ def generate_life_lesson(state: RoyalStateOptional) -> dict:
         situation=state["situation"],
         language_label=language_label,
         signature_phrase=persona["signature_phrase"],
+        child_name=child_name,
     )
     llm = get_llm()
     response = llm.invoke([

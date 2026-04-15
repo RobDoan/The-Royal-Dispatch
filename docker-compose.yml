@@ -3,15 +3,26 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+    command: >
+      sh -c "cd backend && uv add debugpy && cd /app &&
+      uv run --directory backend python -m debugpy --listen 0.0.0.0:5679 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload"
     ports:
       - "8000:8000"
+      - "5679:5679"
+    volumes:
+      - ./backend:/app/backend
     environment:
       - PYTHONUNBUFFERED=1
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
     env_file:
       - backend/.env
     restart: unless-stopped
     depends_on:
       qdrant:
+        condition: service_started
+      minio:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
@@ -24,6 +35,7 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
+      - INTERNAL_API_URL=http://backend:8000
     env_file:
       - ./frontend/.env.local
     restart: unless-stopped
@@ -38,6 +50,7 @@ services:
       - "3001:3001"
     environment:
       - NODE_ENV=production
+      - INTERNAL_API_URL=http://backend:8000
     env_file:
       - ./admin/.env.local
     restart: unless-stopped
@@ -56,6 +69,7 @@ services:
       - TELEGRAM_BOT_TOKEN=8739411539:AAH0aMqkShqkwG5vFjltkUJgzhxjoCgseAY
       - PARENT_CHAT_ID=5863873556
       - BACKEND_URL=http://backend:8000
+      - WEBHOOK_URL=https://n8n.quybits.com
     volumes:
       - n8n_data:/home/node/.n8n
     restart: unless-stopped
@@ -69,17 +83,43 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
     restart: unless-stopped
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - minio_data:/data
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:6333/healthz || exit 1"]
-      interval: 10s
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
       timeout: 5s
       retries: 5
+
+  minio-init:
+    image: minio/mc
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 $${MINIO_ROOT_USER:-minioadmin} $${MINIO_ROOT_PASSWORD:-minioadmin};
+      mc mb --ignore-existing local/royal-audio;
+      mc anonymous set download local/royal-audio;
+      "
+    restart: "no"
 
   postgres:
     image: postgres:16
     environment:
-      POSTGRES_DB: royal_dispatch
-      POSTGRES_USER: royal
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -87,7 +127,7 @@ services:
       - "5432:5432"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U royal"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -101,7 +141,7 @@ services:
       - ./backend/db/migrations:/migrations
     command:
       - "-path=/migrations"
-      - "-database=postgres://royal:${POSTGRES_PASSWORD}@postgres:5432/royal_dispatch?sslmode=disable"
+      - "-database=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
       - "up"
     restart: on-failure
 
@@ -109,3 +149,4 @@ volumes:
   n8n_data:
   qdrant_data:
   postgres_data:
+  minio_data:

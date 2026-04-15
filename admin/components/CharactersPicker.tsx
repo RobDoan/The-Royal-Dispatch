@@ -7,25 +7,25 @@ import type { Persona } from '@/lib/api';
 const MAX_FAVORITES = 5;
 
 interface Props {
-  userId: string;
+  childId: string;
   personas: Persona[];
   initialSelected: string[];
-  onSave: (userId: string, selected: string[]) => void;
+  onSave: (childId: string, selected: string[]) => void;
 }
 
-export function CharactersPicker({ userId, personas, initialSelected, onSave }: Props) {
+export function CharactersPicker({ childId, personas, initialSelected, onSave }: Props) {
   const [selected, setSelected] = useState<string[]>(initialSelected);
 
   function toggle(id: string) {
     if (selected.includes(id)) {
       const next = selected.filter((s) => s !== id);
       setSelected(next);
-      onSave(userId, next);
+      onSave(childId, next);
     } else {
       if (selected.length >= MAX_FAVORITES) return; // max reached
       const next = [...selected, id];
       setSelected(next);
-      onSave(userId, next);
+      onSave(childId, next);
     }
   }
 

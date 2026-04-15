@@ -91,18 +91,18 @@ export default function StoryPlayPage() {
       ariel: t('sorryMessages.ariel'),
     }[princessId] ?? t('sorryMessages.elsa');
     return (
-      <div className="fixed inset-0 flex flex-col items-center justify-center bg-[var(--background)] px-8 text-center gap-6">
+      <div className="fixed inset-0 flex flex-col items-center justify-center px-8 text-center gap-6">
         <img
           src={`/characters/${princessId}.png`}
           alt={meta.name}
           className="w-48 h-48 object-cover rounded-full shadow-lg opacity-80"
         />
-        <p className="text-xl font-bold text-gray-700 max-w-xs leading-snug">
+        <p className="text-xl font-bold text-white/80 max-w-xs leading-snug">
           {sorryMessage}
         </p>
         <button
           onClick={() => router.push(`/${locale}/story`)}
-          className="mt-2 px-8 py-3 bg-black text-white font-bold rounded-full text-sm tracking-widest uppercase"
+          className="mt-2 px-8 py-3 gold-gradient-bg text-[#1a0533] font-bold rounded-full text-sm tracking-widest uppercase"
         >
           {t('goBack')}
         </button>

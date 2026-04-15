@@ -32,10 +32,10 @@ export default function InboxPage() {
   return (
     <main className="font-sans py-10">
       <div className="px-6 pt-safe">
-        <h1 className="text-3xl font-black tracking-tight text-gray-900 mb-1 pt-8">
+        <h1 className="text-transparent bg-clip-text gold-gradient-text text-3xl font-black tracking-tight mb-1 pt-8" style={{ fontFamily: 'var(--font-heading)' }}>
           {t('title')}
         </h1>
-        <p className="text-gray-500 text-sm font-medium mb-6">{t('subtitle')}</p>
+        <p className="text-white/50 text-sm font-medium mb-6">{t('subtitle')}</p>
 
         <div className="flex flex-col gap-3">
           {activePrincessIds.map((id) => {
@@ -44,7 +44,7 @@ export default function InboxPage() {
               <button
                 key={id}
                 onClick={() => handleTap(id)}
-                className="flex items-center gap-4 bg-white rounded-2xl px-5 py-4 shadow-sm border border-gray-100 active:scale-[0.98] transition-transform text-left w-full"
+                className="flex items-center gap-4 glass-card px-5 py-4 active:scale-[0.96] transition-all text-left w-full hover:glass-card-hover"
               >
                 <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0">
                   <img
@@ -54,10 +54,10 @@ export default function InboxPage() {
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-gray-900 text-[15px] leading-tight">{meta.name}</p>
-                  <p className="text-gray-400 text-xs font-medium mt-0.5 truncate">{t(`origins.${id}`)}</p>
+                  <p className="font-bold text-white text-[15px] leading-tight">{meta.name}</p>
+                  <p className="text-white/40 text-xs font-medium mt-0.5 truncate">{t(`origins.${id}`)}</p>
                 </div>
-                <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                <ChevronRight className="w-5 h-5 text-white/30 flex-shrink-0" />
               </button>
             );
           })}

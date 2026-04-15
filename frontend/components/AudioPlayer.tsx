@@ -122,7 +122,7 @@ export function AudioPlayer({ princess, audioUrl, storyText, royalChallenge }: P
         <div className="absolute -top-10 left-8 z-30 pointer-events-auto">
            <button
              onClick={toggle}
-             className="w-20 h-20 bg-white rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.15)] flex items-center justify-center text-[var(--color-primary-orange)] transition-transform active:scale-95"
+             className="w-20 h-20 gold-gradient-bg rounded-full shadow-[0_10px_30px_rgba(255,215,0,0.2)] flex items-center justify-center text-[#1a0533] transition-transform active:scale-95"
            >
              {playing ? (
                <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/></svg>
@@ -133,7 +133,7 @@ export function AudioPlayer({ princess, audioUrl, storyText, royalChallenge }: P
         </div>
 
         {/* The Scrollable Main Sheet */}
-        <div className="absolute inset-0 bg-[var(--background)] rounded-t-[40px] shadow-[0_-15px_50px_rgba(0,0,0,0.4)] overflow-hidden pointer-events-auto flex flex-col pt-16">
+        <div className="absolute inset-0 bg-[#1a0533]/90 backdrop-blur-xl rounded-t-[40px] shadow-[0_-15px_50px_rgba(0,0,0,0.4)] border-t border-white/10 overflow-hidden pointer-events-auto flex flex-col pt-16">
           
           {/* Scrollable Transcript Area */}
           <div className="flex-1 overflow-y-auto px-8 pb-32 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -141,22 +141,22 @@ export function AudioPlayer({ princess, audioUrl, storyText, royalChallenge }: P
              {/* Title & Metadata */}
              <div className="mb-8">
                <div className="text-4xl mb-2">{princess.emoji}</div>
-               <h1 className="text-[40px] leading-tight font-black tracking-tight mb-2 text-gray-900" style={{ fontFamily: '"Quicksand", sans-serif' }}>
+               <h1 className="text-[40px] leading-tight font-black tracking-tight mb-2 text-white" style={{ fontFamily: '"Quicksand", sans-serif' }}>
                  {princess.name}
                </h1>
-               <p className="text-gray-400 font-bold mb-1 uppercase tracking-wider text-[11px]">{princess.origin || 'Fairy Tale'} • Bedtime Story</p>
-               <p className="text-gray-500 font-semibold mb-8 text-sm">Runtime: {formatTime(duration)}</p>
+               <p className="text-white/50 font-bold mb-1 uppercase tracking-wider text-[11px]">{princess.origin || 'Fairy Tale'} • Bedtime Story</p>
+               <p className="text-white/40 font-semibold mb-8 text-sm">Runtime: {formatTime(duration)}</p>
              </div>
 
-             <div className="text-[17px] text-gray-700 leading-relaxed space-y-7 font-medium pb-8 w-full max-w-prose">
+             <div className="text-[17px] text-white/80 leading-relaxed space-y-7 font-medium pb-8 w-full max-w-prose">
                <p>{stripAudioTags(storyText)}</p>
              </div>
              {royalChallenge && (
-               <div className="mt-6 mb-4 border-2 border-amber-300 rounded-2xl bg-amber-50 p-5">
-                 <p className="text-amber-700 font-extrabold text-sm uppercase tracking-wider mb-2">
+               <div className="mt-6 mb-4 border border-[var(--color-gold)]/30 rounded-2xl bg-[var(--color-gold)]/10 p-5">
+                 <p className="text-[var(--color-gold)] font-extrabold text-sm uppercase tracking-wider mb-2">
                    <span aria-hidden="true">👑 </span>{tStory('royalChallenge')}
                  </p>
-                 <p className="text-gray-800 font-semibold text-[16px] leading-relaxed italic">
+                 <p className="text-white/90 font-semibold text-[16px] leading-relaxed italic">
                    {royalChallenge}
                  </p>
                </div>
@@ -164,22 +164,22 @@ export function AudioPlayer({ princess, audioUrl, storyText, royalChallenge }: P
           </div>
 
           {/* Sticky Player Footer */}
-          <div className="absolute bottom-0 left-0 right-0 h-32 bg-[var(--background)] border-t border-gray-100 flex flex-col items-center justify-center px-8 z-20 pb-safe">
+          <div className="absolute bottom-0 left-0 right-0 h-32 bg-[#1a0533]/90 backdrop-blur-xl border-t border-white/5 flex flex-col items-center justify-center px-8 z-20 pb-safe">
             
             {/* Minimal Progress Bar */}
             <div className="w-full flex items-center justify-between mt-2 mb-4">
-              <span className="text-[11px] font-bold text-gray-400 w-10 text-left">
+              <span className="text-[11px] font-bold text-white/40 w-10 text-left">
                 {formatTime(progress)}
               </span>
-              <div className="flex-1 max-w-[200px] h-1.5 bg-gray-200 rounded-full mx-4">
+              <div className="flex-1 max-w-[200px] h-1.5 bg-white/10 rounded-full mx-4">
                 <div 
-                  className="h-full bg-[var(--color-primary-orange)] rounded-full relative"
+                  className="h-full gold-gradient-bg rounded-full relative"
                   style={{ width: `${progressPercent}%` }}
                 >
-                   <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3.5 h-3.5 bg-white border-[3px] border-[var(--color-primary-orange)] rounded-full shadow-sm" />
+                   <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3.5 h-3.5 bg-white border-[3px] border-[var(--color-gold)] rounded-full shadow-sm" />
                 </div>
               </div>
-              <span className="text-[11px] font-bold text-gray-400 w-10 text-right">
+              <span className="text-[11px] font-bold text-white/40 w-10 text-right">
                 {formatTime(duration)}
               </span>
             </div>
@@ -187,8 +187,8 @@ export function AudioPlayer({ princess, audioUrl, storyText, royalChallenge }: P
             {/* Hold to Exit (Buy Ticket replacement) & Audio Nav */}
             <div className="w-full flex justify-between items-center px-2">
                <button 
-                 className="text-gray-400 hover:text-gray-600 font-bold text-xl active:scale-95 transition-transform" 
-                 onClick={() => { if(audioRef.current) audioRef.current.currentTime -= 10 }}
+className="text-white/40 hover:text-white/70 font-bold text-xl active:scale-95 transition-transform" 
+                  onClick={() => { if(audioRef.current) audioRef.current.currentTime -= 10 }}
                  aria-label="Rewind 10s"
                >
                  ↺
@@ -199,18 +199,18 @@ export function AudioPlayer({ princess, audioUrl, storyText, royalChallenge }: P
                  onPointerDown={startHold}
                  onPointerUp={endHold}
                  onPointerLeave={endHold}
-                 className="relative overflow-hidden w-48 h-[52px] bg-black text-white font-extrabold text-[13px] tracking-widest rounded-full uppercase flex items-center justify-center select-none touch-none active:scale-[0.98] transition-transform shadow-lg"
+                 className="relative overflow-hidden w-48 h-[52px] bg-white/10 backdrop-blur-sm border border-white/10 text-white font-extrabold text-[13px] tracking-widest rounded-full uppercase flex items-center justify-center select-none touch-none active:scale-[0.98] transition-transform shadow-lg"
                >
                   <div 
-                    className="absolute left-0 top-0 bottom-0 bg-[var(--color-primary-orange)] opacity-40 transition-all ease-linear"
+                    className="absolute left-0 top-0 bottom-0 bg-[var(--color-gold)] opacity-40 transition-all ease-linear"
                     style={{ width: `${holdProgress}%` }}
                   />
                   <span className="relative z-10">Hold to Exit 🔒</span>
                </button>
 
                <button 
-                 className="text-gray-400 hover:text-gray-600 font-bold text-xl active:scale-95 transition-transform" 
-                 onClick={() => { if(audioRef.current) audioRef.current.currentTime += 10 }}
+className="text-white/40 hover:text-white/70 font-bold text-xl active:scale-95 transition-transform" 
+                  onClick={() => { if(audioRef.current) audioRef.current.currentTime += 10 }}
                  aria-label="Skip 10s"
                >
                  ↻

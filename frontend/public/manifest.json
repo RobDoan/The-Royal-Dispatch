@@ -4,8 +4,8 @@
   "description": "Personalized princess letters for Emma",
   "start_url": "/en",
   "display": "standalone",
-  "background_color": "#f5f0ff",
-  "theme_color": "#b085d8",
+  "background_color": "#1a0533",
+  "theme_color": "#2d1b69",
   "orientation": "portrait",
   "icons": [
     {

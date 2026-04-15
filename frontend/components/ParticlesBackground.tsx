@@ -47,7 +47,7 @@ export function ParticlesBackground() {
           },
           particles: {
             color: {
-              value: ["#FFFFFF", "#FFB6C1", "#87CEEB", "#E6E6FA"],
+              value: ["#FFD700", "#FFFFFF", "#7EC8E3", "#FF85A1"],
             },
             links: {
               enable: false,
@@ -59,20 +59,20 @@ export function ParticlesBackground() {
                 default: "bounce",
               },
               random: true,
-              speed: 0.5,
+              speed: 0.4,
               straight: false,
             },
             number: {
               density: {
                 enable: true,
               },
-              value: 60,
+              value: 40,
             },
             opacity: {
-              value: { min: 0.1, max: 0.6 },
+              value: { min: 0.1, max: 0.7 },
               animation: {
                 enable: true,
-                speed: 1,
+                speed: 1.5,
                 sync: false,
               },
             },
@@ -80,7 +80,12 @@ export function ParticlesBackground() {
               type: "circle",
             },
             size: {
-              value: { min: 1, max: 3 },
+              value: { min: 2, max: 5 },
+              animation: {
+                enable: true,
+                speed: 2,
+                sync: false,
+              },
             },
           },
           detectRetina: true,

@@ -74,50 +74,50 @@ export function UsersTable({ initialUsers }: Props) {
       {/* Add user form */}
       <form onSubmit={handleCreate} className="flex gap-3 items-end">
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-slate-400">Name</label>
+          <label className="text-xs font-medium text-[var(--admin-text-secondary)]">Name</label>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Quy (Dad)"
-            className="px-3 py-2 rounded-md text-sm border bg-slate-900 border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-48"
+            className="px-3 py-2 rounded-[10px] text-sm border bg-[var(--admin-input-bg)] border-[var(--admin-input-border)] text-[var(--admin-text-primary)] placeholder-[var(--admin-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--admin-focus-ring)] w-48"
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-slate-400">Telegram Chat ID</label>
+          <label className="text-xs font-medium text-[var(--admin-text-secondary)]">Telegram Chat ID</label>
           <input
             value={chatId}
             onChange={(e) => setChatId(e.target.value)}
             placeholder="e.g. 5863873556"
             type="number"
-            className="px-3 py-2 rounded-md text-sm border bg-slate-900 border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-44"
+            className="px-3 py-2 rounded-[10px] text-sm border bg-[var(--admin-input-bg)] border-[var(--admin-input-border)] text-[var(--admin-text-primary)] placeholder-[var(--admin-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--admin-focus-ring)] w-44"
           />
         </div>
         <button
           type="submit"
           disabled={submitting || !name.trim() || !chatId.trim()}
-          className="px-4 py-2 rounded-md text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-4 py-2 rounded-[10px] text-sm font-bold bg-gradient-to-br from-[#FFD700] to-[#FFA500] text-[#1a0533] hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
           {submitting ? 'Adding...' : '+ Add User'}
         </button>
       </form>
 
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <p className="text-sm text-red-500">{error}</p>}
 
       {newToken && (
-        <div className="p-3 rounded-md bg-slate-800 border border-indigo-600 text-sm">
-          <span className="text-slate-400">User created. Share this link: </span>
-          <code className="text-indigo-300 font-mono ml-1 break-all">{FRONTEND_URL}?token={newToken}</code>
+        <div className="p-3 rounded-md bg-white border border-[var(--admin-purple)]/30 text-sm">
+          <span className="text-[var(--admin-text-secondary)]">User created. Share this link: </span>
+          <code className="text-[var(--admin-purple)] font-mono ml-1 break-all">{FRONTEND_URL}?token={newToken}</code>
         </div>
       )}
 
       {/* Table */}
-      <div className="rounded-xl border border-slate-800 overflow-hidden">
+      <div className="rounded-2xl overflow-hidden bg-white border border-[var(--admin-card-border)] shadow-[var(--admin-card-shadow)]">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-800 bg-slate-950">
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Telegram Chat ID</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Token</th>
+            <tr className="border-b border-[var(--admin-card-border)]" style={{ background: 'linear-gradient(135deg, #2d1b69, #1a0533)' }}>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider">Name</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider">Telegram Chat ID</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider">Token</th>
               <th className="px-4 py-3"></th>
               <th className="px-4 py-3"></th>
             </tr>
@@ -125,7 +125,7 @@ export function UsersTable({ initialUsers }: Props) {
           <tbody>
             {users.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-500 text-sm">
+                <td colSpan={5} className="px-4 py-8 text-center text-[var(--admin-text-muted)] text-sm">
                   No users yet. Add one above.
                 </td>
               </tr>
@@ -134,25 +134,25 @@ export function UsersTable({ initialUsers }: Props) {
               <React.Fragment key={user.id}>
                 <tr
                   onClick={() => setExpandedUserId(expandedUserId === user.id ? null : user.id)}
-                  className="border-b border-slate-800 last:border-0 hover:bg-slate-800/30 cursor-pointer"
+                  className="border-b border-[var(--admin-card-border)] last:border-0 hover:bg-[var(--admin-purple)]/[0.04] cursor-pointer"
                 >
-                  <td className="px-4 py-3 text-slate-200 font-medium">{user.name}</td>
-                  <td className="px-4 py-3 text-slate-400 font-mono">{user.telegram_chat_id}</td>
+                  <td className="px-4 py-3 text-[var(--admin-text-primary)] font-semibold">{user.name}</td>
+                  <td className="px-4 py-3 text-[var(--admin-text-secondary)] font-mono">{user.telegram_chat_id}</td>
                   <td className="px-4 py-3">
-                    <code className="bg-slate-800 text-slate-300 text-xs px-2 py-1 rounded font-mono">{user.token}</code>
+                    <code className="bg-[var(--admin-bg)] text-[var(--admin-text-secondary)] text-xs px-2 py-1 rounded font-mono">{user.token}</code>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={(e) => handleCopyLink(e, user.token, user.id)}
-                        className="text-slate-500 hover:text-indigo-400 transition-colors p-1 rounded"
+                        className="text-[var(--admin-text-muted)] hover:text-[var(--admin-purple)] transition-colors p-1 rounded"
                         title="Copy shareable link"
                       >
                         {copiedUserId === user.id ? <Check size={15} className="text-green-400" /> : <Link size={15} />}
                       </button>
                       <button
                         onClick={(e) => handleDelete(e, user.id)}
-                        className="text-slate-500 hover:text-red-400 transition-colors p-1 rounded"
+                        className="text-[var(--admin-text-muted)] hover:text-red-500 transition-colors p-1 rounded"
                         title="Remove user"
                       >
                         <Trash2 size={15} />
@@ -161,23 +161,23 @@ export function UsersTable({ initialUsers }: Props) {
                   </td>
                   <td className="px-4 py-3 text-right">
                     {expandedUserId === user.id
-                      ? <ChevronDown size={15} className="text-slate-400" />
-                      : <ChevronRight size={15} className="text-slate-600" />}
+                      ? <ChevronDown size={15} className="text-[var(--admin-text-muted)]" />
+                      : <ChevronRight size={15} className="text-[var(--admin-text-muted)]" />}
                   </td>
                 </tr>
                 {expandedUserId === user.id && (
-                  <tr key={`${user.id}-children`} className="border-b border-slate-800 bg-slate-800/20">
+                  <tr key={`${user.id}-children`} className="border-b border-[var(--admin-card-border)] bg-[var(--admin-purple)]/[0.03]">
                     <td colSpan={5} className="px-8 py-3">
-                      <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Linked Children</h4>
+                      <h4 className="text-xs font-semibold text-[var(--admin-text-secondary)] uppercase tracking-wider mb-2">Linked Children</h4>
                       {user.children.length === 0 ? (
-                        <p className="text-sm text-slate-500">No children linked. Link children from the Children page.</p>
+                        <p className="text-sm text-[var(--admin-text-muted)]">No children linked. Link children from the Children page.</p>
                       ) : (
                         <div className="flex flex-col gap-1">
                           {user.children.map((child) => (
                             <div key={child.child_id} className="flex items-center gap-2">
-                              <span className="text-sm text-slate-300">{child.child_name}</span>
+                              <span className="text-sm text-[var(--admin-text-primary)]">{child.child_name}</span>
                               {child.role && (
-                                <span className="text-xs text-slate-500">({child.role})</span>
+                                <span className="text-xs text-[var(--admin-text-muted)]">({child.role})</span>
                               )}
                             </div>
                           ))}

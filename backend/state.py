@@ -17,3 +17,4 @@ class RoyalStateOptional(RoyalState, total=False):
     royal_challenge: str | None  # only written by generate_life_lesson; absent for daily
     memories: str                # formatted memory context; empty string if none available
     child_id: str | None         # UUID of the child this story is for; None if unresolved
+    child_name: str              # name of the child; defaults to "Emma"

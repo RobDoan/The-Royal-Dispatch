@@ -105,11 +105,13 @@ def test_fetch_brief_passes_none_child_id_when_absent(base_state, mocker):
 
 def test_fetch_brief_passes_child_id_when_present(base_state, mocker):
     mock_cursor = _mock_conn_with_rows(mocker, [("Test brief for child.",)])
-    # Add child_id to the state
+    # First fetchone returns child name, fetchall returns briefs
+    mock_cursor.fetchone.return_value = ("Luna",)
     state_with_child = {**base_state, "child_id": "abc-123"}
     result = fetch_brief(state_with_child)
-    # Verify the SQL was called with "abc-123" as the third parameter
-    mock_cursor.execute.assert_called_once()
-    call_args = mock_cursor.execute.call_args
-    assert call_args[0][1][2] == "abc-123"  # Third SQL parameter should be "abc-123"
+    # Two execute calls: one for child name, one for briefs
+    assert mock_cursor.execute.call_count == 2
+    briefs_call = mock_cursor.execute.call_args_list[1]
+    assert briefs_call[0][1][2] == "abc-123"
     assert "Test brief for child." in result["brief"]
+    assert result["child_name"] == "Luna"

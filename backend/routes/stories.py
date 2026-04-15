@@ -111,6 +111,7 @@ def post_story(req: StoryRequest):
         "language": req.language,
         "timezone": req.timezone,
         "child_id": req.child_id,
+        "child_name": "Emma",
     }
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
         future = executor.submit(royal_graph.invoke, initial_state)

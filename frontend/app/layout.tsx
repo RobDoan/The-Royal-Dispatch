@@ -1,8 +1,12 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
-import { Geist } from "next/font/google";
+import { Nunito } from "next/font/google";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const nunito = Nunito({
+  subsets: ['latin'],
+  variable: '--font-sans',
+  weight: ['300', '400', '600', '700', '800'],
+});
 
 export const metadata: Metadata = {
   title: 'The Royal Dispatch',

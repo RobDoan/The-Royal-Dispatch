@@ -121,43 +121,46 @@ export function ChildrenTable({ initialChildren, allUsers, personas }: Props) {
       {/* Add child form */}
       <form onSubmit={handleCreateChild} className="flex gap-3 items-end">
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-slate-400">Child Name</label>
+          <label className="text-xs font-medium text-[var(--admin-text-secondary)]">Child Name</label>
           <input
             value={childName}
             onChange={(e) => setChildName(e.target.value)}
             placeholder="e.g. Emma"
-            className="px-3 py-2 rounded-md text-sm border bg-slate-900 border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-48"
+            className="px-3 py-2 rounded-[10px] text-sm border bg-[var(--admin-input-bg)] border-[var(--admin-input-border)] text-[var(--admin-text-primary)] placeholder-[var(--admin-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--admin-focus-ring)] w-48"
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-slate-400">Timezone</label>
+          <label className="text-xs font-medium text-[var(--admin-text-secondary)]">Timezone</label>
           <input
             value={childTimezone}
             onChange={(e) => setChildTimezone(e.target.value)}
             placeholder="America/Los_Angeles"
-            className="px-3 py-2 rounded-md text-sm border bg-slate-900 border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-48"
+            className="px-3 py-2 rounded-[10px] text-sm border bg-[var(--admin-input-bg)] border-[var(--admin-input-border)] text-[var(--admin-text-primary)] placeholder-[var(--admin-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--admin-focus-ring)] w-44"
           />
         </div>
         <button
           type="submit"
           disabled={submitting || !childName.trim()}
-          className="px-4 py-2 rounded-md text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-4 py-2 rounded-[10px] text-sm font-bold bg-gradient-to-br from-[#FFD700] to-[#FFA500] text-[#1a0533] hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
           {submitting ? 'Adding...' : '+ Add Child'}
         </button>
       </form>
 
-      {error && <p className="text-sm text-red-400">{error}</p>}
-      {saveError && <p className="text-sm text-red-400">{saveError}</p>}
+      {error && <p className="text-sm text-red-500">{error}</p>}
+      {saveError && <p className="text-sm text-red-500">{saveError}</p>}
 
       {/* Table */}
-      <div className="rounded-xl border border-slate-800 overflow-hidden">
+      <div className="rounded-2xl overflow-hidden bg-white border border-[var(--admin-card-border)] shadow-[var(--admin-card-shadow)]">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-800 bg-slate-950">
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Timezone</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Linked Users</th>
+            <tr
+              className="border-b border-[var(--admin-card-border)]"
+              style={{ background: 'linear-gradient(135deg, #2d1b69, #1a0533)' }}
+            >
+              <th className="px-4 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider">Name</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider">Timezone</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-white/60 uppercase tracking-wider">Linked Users</th>
               <th className="px-4 py-3"></th>
               <th className="px-4 py-3"></th>
             </tr>
@@ -165,7 +168,7 @@ export function ChildrenTable({ initialChildren, allUsers, personas }: Props) {
           <tbody>
             {children.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-500 text-sm">
+                <td colSpan={5} className="px-4 py-8 text-center text-[var(--admin-text-muted)] text-sm">
                   No children yet. Add one above.
                 </td>
               </tr>
@@ -174,17 +177,17 @@ export function ChildrenTable({ initialChildren, allUsers, personas }: Props) {
               <React.Fragment key={child.id}>
                 <tr
                   onClick={() => setExpandedChildId(expandedChildId === child.id ? null : child.id)}
-                  className="border-b border-slate-800 last:border-0 hover:bg-slate-800/30 cursor-pointer"
+                  className="border-b border-[var(--admin-card-border)] last:border-0 hover:bg-[var(--admin-purple)]/[0.04] cursor-pointer"
                 >
-                  <td className="px-4 py-3 text-slate-200 font-medium">{child.name}</td>
-                  <td className="px-4 py-3 text-slate-400 text-xs font-mono">{child.timezone}</td>
+                  <td className="px-4 py-3 text-[var(--admin-text-primary)] font-semibold">{child.name}</td>
+                  <td className="px-4 py-3 text-[var(--admin-text-secondary)] text-xs font-mono">{child.timezone}</td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">
                       {child.users.length === 0 && (
-                        <span className="text-slate-600 text-xs">No users linked</span>
+                        <span className="text-[var(--admin-text-muted)] text-xs">No users linked</span>
                       )}
                       {child.users.map((u) => (
-                        <span key={u.user_id} className="bg-slate-800 text-slate-300 text-xs px-2 py-0.5 rounded">
+                        <span key={u.user_id} className="bg-[var(--admin-bg)] text-[var(--admin-text-secondary)] text-xs px-2 py-0.5 rounded">
                           {u.name}{u.role ? ` (${u.role})` : ''}
                         </span>
                       ))}
@@ -193,7 +196,7 @@ export function ChildrenTable({ initialChildren, allUsers, personas }: Props) {
                   <td className="px-4 py-3 text-right">
                     <button
                       onClick={(e) => handleDeleteChild(e, child.id)}
-                      className="text-slate-500 hover:text-red-400 transition-colors p-1 rounded"
+                      className="text-[var(--admin-text-muted)] hover:text-red-500 transition-colors p-1 rounded"
                       title="Remove child"
                     >
                       <Trash2 size={15} />
@@ -201,31 +204,31 @@ export function ChildrenTable({ initialChildren, allUsers, personas }: Props) {
                   </td>
                   <td className="px-4 py-3 text-right">
                     {expandedChildId === child.id
-                      ? <ChevronDown size={15} className="text-slate-400" />
-                      : <ChevronRight size={15} className="text-slate-600" />}
+                      ? <ChevronDown size={15} className="text-[var(--admin-text-muted)]" />
+                      : <ChevronRight size={15} className="text-[var(--admin-text-muted)]" />}
                   </td>
                 </tr>
                 {expandedChildId === child.id && (
-                  <tr key={`${child.id}-details`} className="border-b border-slate-800 bg-slate-800/20">
+                  <tr key={`${child.id}-details`} className="border-b border-[var(--admin-card-border)] bg-[var(--admin-purple)]/[0.03]">
                     <td colSpan={5} className="px-8 py-4">
                       <div className="flex flex-col gap-4">
                         {/* Linked Users Section */}
                         <div>
-                          <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Linked Users</h4>
+                          <h4 className="text-xs font-semibold text-[var(--admin-text-secondary)] uppercase tracking-wider mb-2">Linked Users</h4>
                           {linkError[child.id] && (
-                            <p className="text-sm text-red-400 mb-2">{linkError[child.id]}</p>
+                            <p className="text-sm text-red-500 mb-2">{linkError[child.id]}</p>
                           )}
                           {child.users.length > 0 && (
                             <div className="flex flex-col gap-1 mb-2">
                               {child.users.map((u) => (
                                 <div key={u.user_id} className="flex items-center gap-2">
-                                  <span className="text-sm text-slate-300">{u.name}</span>
+                                  <span className="text-sm text-[var(--admin-text-primary)]">{u.name}</span>
                                   {u.role && (
-                                    <span className="text-xs text-slate-500">({u.role})</span>
+                                    <span className="text-xs text-[var(--admin-text-muted)]">({u.role})</span>
                                   )}
                                   <button
                                     onClick={() => handleUnlinkUser(child.id, u.user_id)}
-                                    className="text-slate-500 hover:text-red-400 transition-colors p-1 rounded"
+                                    className="text-[var(--admin-text-muted)] hover:text-red-500 transition-colors p-1 rounded"
                                     title="Unlink user"
                                   >
                                     <X size={13} />
@@ -242,7 +245,7 @@ export function ChildrenTable({ initialChildren, allUsers, personas }: Props) {
                             <select
                               value={linkUserId[child.id] ?? ''}
                               onChange={(e) => setLinkUserId((prev) => ({ ...prev, [child.id]: e.target.value }))}
-                              className="px-3 py-1.5 rounded-md text-sm border bg-slate-900 border-slate-700 text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-44"
+                              className="px-3 py-1.5 rounded-[10px] text-sm border bg-[var(--admin-input-bg)] border-[var(--admin-input-border)] text-[var(--admin-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--admin-focus-ring)] w-44"
                             >
                               <option value="">Select user...</option>
                               {availableUsers(child.id).map((u) => (
@@ -253,12 +256,12 @@ export function ChildrenTable({ initialChildren, allUsers, personas }: Props) {
                               value={linkRole[child.id] ?? ''}
                               onChange={(e) => setLinkRole((prev) => ({ ...prev, [child.id]: e.target.value }))}
                               placeholder="Role (e.g. mom)"
-                              className="px-3 py-1.5 rounded-md text-sm border bg-slate-900 border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-36"
+                              className="px-3 py-1.5 rounded-[10px] text-sm border bg-[var(--admin-input-bg)] border-[var(--admin-input-border)] text-[var(--admin-text-primary)] placeholder-[var(--admin-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--admin-focus-ring)] w-36"
                             />
                             <button
                               type="submit"
                               disabled={linking === child.id || !(linkUserId[child.id])}
-                              className="px-3 py-1.5 rounded-md text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                              className="px-3 py-1.5 rounded-[10px] text-sm font-bold bg-gradient-to-br from-[#FFD700] to-[#FFA500] text-[#1a0533] hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                             >
                               {linking === child.id ? 'Linking...' : '+ Link'}
                             </button>
@@ -267,7 +270,7 @@ export function ChildrenTable({ initialChildren, allUsers, personas }: Props) {
 
                         {/* Preferences Section */}
                         <div>
-                          <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Favorite Characters</h4>
+                          <h4 className="text-xs font-semibold text-[var(--admin-text-secondary)] uppercase tracking-wider mb-2">Favorite Characters</h4>
                           <CharactersPicker
                             key={`${child.id}-${(((child.preferences?.favorite_princesses ?? []) as string[]).join(','))}`}
                             childId={child.id}

@@ -3,7 +3,7 @@ const INTERNAL_API_URL = process.env.INTERNAL_API_URL ?? NEXT_PUBLIC_API_URL;
 
 const API_URL = typeof window === 'undefined' ? INTERNAL_API_URL : NEXT_PUBLIC_API_URL;
 
-export type Princess = 'elsa' | 'belle' | 'cinderella' | 'ariel';
+export type Princess = 'elsa' | 'belle' | 'cinderella' | 'ariel' | 'rapunzel' | 'moana' | 'raya' | 'mirabel' | 'chase' | 'marshall' | 'skye' | 'rubble';
 export type Language = 'en' | 'vi';
 export type StoryType = 'daily' | 'life_lesson';
 

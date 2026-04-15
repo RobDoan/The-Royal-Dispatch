@@ -22,7 +22,7 @@ class BriefRequest(BaseModel):
 
 
 class StoryRequest(BaseModel):
-    princess: Literal["elsa", "belle", "cinderella", "ariel"]
+    princess: Literal["elsa", "belle", "cinderella", "ariel", "rapunzel", "moana", "raya", "mirabel", "chase", "marshall", "skye", "rubble"]
     language: Literal["en", "vi"] = "en"
     story_type: Literal["daily", "life_lesson"] = "daily"
     date: str | None = None

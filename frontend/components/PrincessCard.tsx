@@ -1,7 +1,8 @@
 import { ReactNode } from 'react';
+import type { PrincessId } from '@/lib/princesses';
 
 export interface PrincessConfig {
-  id: 'elsa' | 'belle' | 'cinderella' | 'ariel';
+  id: PrincessId;
   name: string;
   origin: string;
   emoji: string;
@@ -11,7 +12,7 @@ export interface PrincessConfig {
 
 interface Props {
   princess: PrincessConfig;
-  onClick: (id: PrincessConfig['id']) => void;
+  onClick: (id: PrincessId) => void;
   isLoading?: boolean;
   variant?: 'poster' | 'cinematic';
 }

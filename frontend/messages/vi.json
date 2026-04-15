@@ -11,13 +11,29 @@
       "elsa": "Elsa bị mắc kẹt trong trận bão tuyết ở Arendelle... ❄️ Thử lại một lát nữa nhé!",
       "belle": "Belle đang mải đọc cuốn sách yêu thích 📚 Cô ấy sẽ quay lại sớm thôi!",
       "cinderella": "Cinderella đang ở vũ hội hoàng gia tối nay 👠 Thử lại một chút nhé!",
-      "ariel": "Ariel đang bơi cùng những chú cá heo và chưa thể lên mặt nước 🐠 Thử lại sớm nhé!"
+      "ariel": "Ariel đang bơi cùng những chú cá heo và chưa thể lên mặt nước 🐠 Thử lại sớm nhé!",
+      "rapunzel": "Đèn lồng của Rapunzel bị gió tắt rồi 🌻 Cô ấy sẽ thắp sáng lại sớm thôi!",
+      "moana": "Moana đang đi thuyền qua rặng san hô 🌊 Cô ấy sẽ quay lại sớm!",
+      "raya": "Raya đang làm nhiệm vụ ở Kumandra 🐉 Thử lại một lát nữa nhé!",
+      "mirabel": "Mirabel đang sửa vết nứt trong casita 🦋 Cô ấy sẽ quay lại sớm!",
+      "chase": "Chase đang đi cứu hộ ở Adventure Bay 🐕 Thử lại sớm nhé!",
+      "marshall": "Marshall lại bị vấp ngã rồi 🔥 Cậu ấy sẽ đứng dậy sớm thôi!",
+      "skye": "Skye đang bay trên những đám mây ✈️ Cô ấy sẽ hạ cánh sớm thôi!",
+      "rubble": "Rubble đang xây một thứ gì đó tuyệt vời 🏗️ Cậu ấy sẽ quay lại sớm!"
     },
     "origins": {
       "elsa": "Vương quốc Arendelle",
       "belle": "Lâu đài Phù chú",
       "cinderella": "Hoàng cung",
-      "ariel": "Dưới lòng đại dương"
+      "ariel": "Dưới lòng đại dương",
+      "rapunzel": "Vương quốc Corona",
+      "moana": "Đảo Motunui",
+      "raya": "Kumandra",
+      "mirabel": "Encanto",
+      "chase": "Adventure Bay",
+      "marshall": "Adventure Bay",
+      "skye": "Adventure Bay",
+      "rubble": "Adventure Bay"
     }
   },
   "story": {

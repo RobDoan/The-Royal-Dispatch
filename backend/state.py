@@ -1,7 +1,7 @@
 from typing import TypedDict
 
 class RoyalState(TypedDict):
-    princess: str      # "elsa" | "belle" | "cinderella" | "ariel"
+    princess: str      # "elsa" | "belle" | "cinderella" | "ariel" | "rapunzel" | "moana" | "raya" | "mirabel" | "chase" | "marshall" | "skye" | "rubble"
     date: str          # ISO date string, e.g. "2026-03-23"
     brief: str         # parent's WhatsApp text; "__fallback__" if none
     tone: str          # "praise" | "habit"

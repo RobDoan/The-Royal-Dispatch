@@ -77,7 +77,7 @@ describe('useUser', () => {
     await vi.waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(result.current.selectedChild).toBeNull();
-    expect(result.current.activePrincessIds).toEqual(['elsa', 'belle', 'cinderella', 'ariel']);
+    expect(result.current.activePrincessIds).toEqual(['elsa', 'belle', 'cinderella', 'ariel', 'rapunzel', 'moana', 'raya', 'mirabel', 'chase', 'marshall', 'skye', 'rubble']);
   });
 
   it('selectChild updates state and localStorage', async () => {

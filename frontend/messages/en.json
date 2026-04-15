@@ -11,13 +11,29 @@
       "elsa": "Elsa got caught in a snowstorm in Arendelle... ❄️ Try again in a little while!",
       "belle": "Belle is lost in her favourite book right now 📚 She'll be back soon!",
       "cinderella": "Cinderella is at the royal ball tonight 👠 Try again in a moment!",
-      "ariel": "Ariel is swimming with the dolphins and can't come to the surface 🐠 Try again soon!"
+      "ariel": "Ariel is swimming with the dolphins and can't come to the surface 🐠 Try again soon!",
+      "rapunzel": "Rapunzel's lanterns blew out in the wind 🌻 She'll light them again soon!",
+      "moana": "Moana is sailing beyond the reef right now 🌊 She'll be back soon!",
+      "raya": "Raya is on a mission across Kumandra 🐉 Try again in a little while!",
+      "mirabel": "Mirabel is fixing a crack in the casita 🦋 She'll be back soon!",
+      "chase": "Chase is on a rescue mission in Adventure Bay 🐕 Try again soon!",
+      "marshall": "Marshall tripped over his own paws again 🔥 He'll be back up soon!",
+      "skye": "Skye is flying through the clouds right now ✈️ She'll land soon!",
+      "rubble": "Rubble is building something amazing 🏗️ He'll be back soon!"
     },
     "origins": {
       "elsa": "Kingdom of Arendelle",
       "belle": "The Enchanted Castle",
       "cinderella": "The Royal Palace",
-      "ariel": "Under the Sea"
+      "ariel": "Under the Sea",
+      "rapunzel": "Kingdom of Corona",
+      "moana": "Motunui Island",
+      "raya": "Kumandra",
+      "mirabel": "The Encanto",
+      "chase": "Adventure Bay",
+      "marshall": "Adventure Bay",
+      "skye": "Adventure Bay",
+      "rubble": "Adventure Bay"
     }
   },
   "story": {

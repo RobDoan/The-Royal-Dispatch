@@ -84,12 +84,7 @@ export default function StoryPlayPage() {
   }
 
   if (pageState === 'timeout' || pageState === 'error') {
-    const sorryMessage = {
-      elsa: t('sorryMessages.elsa'),
-      belle: t('sorryMessages.belle'),
-      cinderella: t('sorryMessages.cinderella'),
-      ariel: t('sorryMessages.ariel'),
-    }[princessId] ?? t('sorryMessages.elsa');
+    const sorryMessage = tStory(`sorryMessages.${princessId}`);
     return (
       <div className="fixed inset-0 flex flex-col items-center justify-center px-8 text-center gap-6">
         <img

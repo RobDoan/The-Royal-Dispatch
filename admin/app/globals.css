@@ -4,24 +4,61 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: 222 47% 7%;
-  --foreground: 213 31% 91%;
-  --card: 222 47% 9%;
-  --card-foreground: 213 31% 91%;
-  --border: 217 33% 17%;
-  --input: 217 33% 17%;
-  --primary: 239 84% 67%;
-  --primary-foreground: 0 0% 100%;
-  --muted: 217 33% 17%;
-  --muted-foreground: 215 20% 45%;
-  --accent: 217 33% 17%;
-  --accent-foreground: 213 31% 91%;
+  /* Admin Warm Cream Palette */
+  --background: 30 50% 97%;
+  --foreground: 266 50% 20%;
+  --card: 0 0% 100%;
+  --card-foreground: 266 50% 20%;
+  --border: 266 30% 92%;
+  --input: 266 30% 92%;
+  --primary: 45 100% 50%;
+  --primary-foreground: 266 60% 10%;
+  --secondary: 266 30% 95%;
+  --secondary-foreground: 266 50% 20%;
+  --muted: 266 20% 94%;
+  --muted-foreground: 0 0% 55%;
+  --accent: 266 40% 70%;
+  --accent-foreground: 0 0% 100%;
   --destructive: 0 63% 55%;
   --destructive-foreground: 0 0% 100%;
   --radius: 0.5rem;
-  --sidebar-bg: #0f172a;
-  --sidebar-border: #1e293b;
-  --topbar-bg: #0f172a;
+
+  /* Sidebar */
+  --sidebar-bg: linear-gradient(180deg, #2d1b69, #1a0533);
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+
+  /* Custom admin tokens */
+  --admin-bg: #FFF8F0;
+  --admin-card: #FFFFFF;
+  --admin-card-shadow: 0 4px 20px rgba(45, 27, 105, 0.06);
+  --admin-card-border: rgba(147, 112, 219, 0.08);
+  --admin-input-bg: #FDFBF8;
+  --admin-input-border: rgba(147, 112, 219, 0.15);
+  --admin-focus-ring: #9370DB;
+  --admin-text-primary: #2d1b69;
+  --admin-text-secondary: #888888;
+  --admin-text-muted: #AAAAAA;
+  --admin-gold: #FFD700;
+  --admin-gold-dark: #FFA500;
+  --admin-purple: #9370DB;
+
+  /* Persona chip colors */
+  --chip-elsa-bg: rgba(147, 197, 253, 0.15);
+  --chip-elsa-border: rgba(147, 197, 253, 0.3);
+  --chip-elsa-text: #4A90D9;
+  --chip-belle-bg: rgba(252, 211, 77, 0.15);
+  --chip-belle-border: rgba(252, 211, 77, 0.3);
+  --chip-belle-text: #B8860B;
+  --chip-cinderella-bg: rgba(249, 168, 212, 0.15);
+  --chip-cinderella-border: rgba(249, 168, 212, 0.3);
+  --chip-cinderella-text: #D4729B;
+  --chip-ariel-bg: rgba(110, 231, 183, 0.15);
+  --chip-ariel-border: rgba(110, 231, 183, 0.3);
+  --chip-ariel-text: #2E8B57;
+
+  /* Fonts */
+  --font-body: 'Nunito', system-ui, sans-serif;
+  --font-heading: 'Georgia', serif;
 }
 
 * {
@@ -29,7 +66,7 @@
 }
 
 body {
-  background-color: hsl(var(--background));
+  background-color: var(--admin-bg);
   color: hsl(var(--foreground));
-  font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+  font-family: var(--font-body);
 }

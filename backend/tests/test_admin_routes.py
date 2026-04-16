@@ -133,28 +133,6 @@ def test_list_personas_returns_persona_ids(mocker):
     assert "belle" in ids
 
 
-def test_get_user_by_token_returns_user(mocker):
-    mock_cursor = _make_mock_conn(mocker, "backend.routes.users.get_conn")
-    mock_cursor.fetchone.return_value = ("uuid-1", "Quy")
-    mock_cursor.fetchall.return_value = [
-        ("child-1", "Luna", {"favorite_princesses": ["elsa"]}),
-    ]
-    client = make_client(mocker)
-    response = client.get("/user/me?token=tk_abc")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["user_id"] == "uuid-1"
-    assert len(data["children"]) == 1
-    assert data["children"][0]["preferences"]["favorite_princesses"] == ["elsa"]
-
-
-def test_get_user_by_token_returns_404_for_unknown_token(mocker):
-    _make_mock_conn(mocker, "backend.routes.users.get_conn", fetchone=None)
-    client = make_client(mocker)
-    response = client.get("/user/me?token=bad_token")
-    assert response.status_code == 404
-
-
 def test_get_user_by_chat_id_returns_user(mocker):
     _make_mock_conn(mocker, "backend.routes.users.get_conn", fetchone=("uuid-1", "Quy"))
     client = make_client(mocker)

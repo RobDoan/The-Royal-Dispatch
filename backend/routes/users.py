@@ -17,8 +17,8 @@ class ChildInfo(BaseModel):
 
 
 class UserMeResponse(BaseModel):
-    user_id: str
-    name: str
+    user_id: str | None
+    name: str | None
     children: list[ChildInfo]
 
 
@@ -29,16 +29,21 @@ class UserByChatIdResponse(BaseModel):
 
 @router.get("/me", response_model=UserMeResponse)
 def get_user_by_token(token: str = Query(...)):
+    try:
+        chat_id = decode_token(token)
+    except InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
     with get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT id, name FROM users WHERE token = %s", (token,))
+            cur.execute("SELECT id, name FROM users WHERE telegram_chat_id = %s", (chat_id,))
             user_row = cur.fetchone()
             if not user_row:
-                raise HTTPException(status_code=404, detail="User not found")
+                return {"user_id": None, "name": None, "children": []}
             cur.execute(
                 """SELECT c.id, c.name, c.preferences FROM children c
                    JOIN user_children uc ON c.id = uc.child_id
-                   WHERE uc.user_id = %s ORDER BY c.created_at""",
+                   WHERE uc.user_id = %s ORDER BY c.created_at, c.id""",
                 (str(user_row[0]),),
             )
             child_rows = cur.fetchall()

@@ -73,3 +73,40 @@ def test_register_link_rejects_when_secret_not_configured(mocker, monkeypatch):
     r = client.post("/user/register-link", json={"telegram_chat_id": 42},
                     headers={"X-N8N-Secret": "anything"})
     assert r.status_code == 401
+
+
+def test_user_me_invalid_token_returns_401(mocker):
+    client = make_client(mocker)
+    r = client.get("/user/me?token=not-a-token")
+    assert r.status_code == 401
+
+
+def test_user_me_unknown_chat_id_returns_stub(mocker):
+    _make_mock_conn(mocker, "backend.routes.users.get_conn", fetchone=None)
+    client = make_client(mocker)
+    from backend.utils.auth_token import encode
+    token = encode(999)
+    r = client.get(f"/user/me?token={token}")
+    assert r.status_code == 200
+    body = r.json()
+    assert body == {"user_id": None, "name": None, "children": []}
+
+
+def test_user_me_known_chat_id_returns_profile(mocker):
+    mock_cursor = _make_mock_conn(mocker, "backend.routes.users.get_conn")
+    mock_cursor.fetchone.return_value = ("uuid-user", "Parent Name")
+    mock_cursor.fetchall.return_value = [
+        ("uuid-child-1", "Emma", {"favorite_princesses": ["elsa", "belle"]}),
+        ("uuid-child-2", "Lily", {"favorite_princesses": []}),
+    ]
+    client = make_client(mocker)
+    from backend.utils.auth_token import encode
+    token = encode(123)
+    r = client.get(f"/user/me?token={token}")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["user_id"] == "uuid-user"
+    assert body["name"] == "Parent Name"
+    assert len(body["children"]) == 2
+    assert body["children"][0]["name"] == "Emma"
+    assert body["children"][0]["preferences"]["favorite_princesses"] == ["elsa", "belle"]

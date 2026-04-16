@@ -45,4 +45,38 @@ def build_graph():
 
     return graph.compile()
 
+def build_pre_tts_graph():
+    """Pipeline up through story generation, stopping before TTS + persistence.
+
+    Used by GET /story/stream so the endpoint can take over synthesis and
+    streaming manually.
+    """
+    graph = StateGraph(RoyalStateOptional)
+    graph.add_node("fetch_brief", fetch_brief)
+    graph.add_node("extract_memories", extract_memories)
+    graph.add_node("classify_tone", classify_tone)
+    graph.add_node("load_persona", load_persona)
+    graph.add_node("fetch_memories", fetch_memories)
+    graph.add_node("generate_story", generate_story)
+    graph.add_node("infer_situation", infer_situation)
+    graph.add_node("generate_life_lesson", generate_life_lesson)
+
+    graph.set_entry_point("fetch_brief")
+    graph.add_edge("fetch_brief", "extract_memories")
+    graph.add_edge("extract_memories", "classify_tone")
+    graph.add_edge("classify_tone", "load_persona")
+    graph.add_edge("load_persona", "fetch_memories")
+    graph.add_conditional_edges(
+        "fetch_memories",
+        route_story_type,
+        {"daily": "generate_story", "life_lesson": "infer_situation"},
+    )
+    graph.add_edge("generate_story", END)
+    graph.add_edge("infer_situation", "generate_life_lesson")
+    graph.add_edge("generate_life_lesson", END)
+
+    return graph.compile()
+
+
 royal_graph = build_graph()
+pre_tts_graph = build_pre_tts_graph()

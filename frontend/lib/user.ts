@@ -14,6 +14,11 @@ export interface UserProfile {
   children: ChildInfo[];
 }
 
+export interface Persona {
+  id: string;
+  name: string;
+}
+
 export function getStoredToken(): string | null {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem('royal_token');

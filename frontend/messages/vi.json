@@ -44,5 +44,9 @@
   "pickChild": {
     "heading": "Ai sẽ nghe truyện tối nay?",
     "subheading": "Chạm vào tên của con để bắt đầu"
+  },
+  "onboarding": {
+    "favoritesCount": "Đã chọn {selected} / {max}",
+    "favoritesEmptyHint": "hiện tất cả"
   }
 }

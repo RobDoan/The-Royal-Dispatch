@@ -44,5 +44,9 @@
   "pickChild": {
     "heading": "Who's reading tonight?",
     "subheading": "Tap your name to begin"
+  },
+  "onboarding": {
+    "favoritesCount": "{selected} / {max} selected",
+    "favoritesEmptyHint": "shows all"
   }
 }

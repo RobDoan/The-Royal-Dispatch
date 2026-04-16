@@ -24,7 +24,6 @@ def _make_mock_conn(mocker, module_path, fetchone=_UNSET, fetchall=_UNSET):
 
 
 def make_client(mocker):
-    mocker.patch("backend.routes.stories.royal_graph")
     from backend.main import app
     return TestClient(app)
 
@@ -151,17 +150,17 @@ def test_get_user_by_chat_id_returns_404_for_unknown(mocker):
 def test_post_story_without_user_id(mocker):
     mock_cursor = _make_mock_conn(mocker, "backend.routes.stories.get_conn")
     mock_cursor.fetchone.return_value = None
+    mocker.patch.dict("os.environ", {"BACKEND_PUBLIC_URL": "https://api.example.com"})
 
     client = make_client(mocker)
-    mock_graph = mocker.patch("backend.routes.stories.royal_graph")
-    mock_graph.invoke.return_value = {"audio_url": "https://s3.example.com/story.mp3"}
 
     response = client.post("/story", json={
         "princess": "elsa",
         "child_id": "child-uuid-1",
     })
     assert response.status_code == 200
-    assert response.json()["audio_url"] == "https://s3.example.com/story.mp3"
+    assert response.json()["audio_url"].startswith("https://api.example.com/story/stream?")
+    assert "child_id=child-uuid-1" in response.json()["audio_url"]
 
 
 def test_get_story_detail_without_user_id(mocker):

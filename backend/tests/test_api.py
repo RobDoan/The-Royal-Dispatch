@@ -27,7 +27,6 @@ def _make_mock_conn(mocker, module_path, fetchone=_UNSET, fetchall=_UNSET):
 
 @pytest.fixture
 def client(mocker):
-    mocker.patch("backend.routes.stories.royal_graph")
     from backend.main import app
     return TestClient(app)
 
@@ -39,52 +38,45 @@ def test_post_brief_stores_and_returns_ok(client, mocker):
     assert response.json()["status"] == "ok"
 
 
-def test_post_story_triggers_graph_and_returns_audio_url(mocker):
-    mock_graph = MagicMock()
-    mock_graph.invoke.return_value = {"audio_url": "https://royal-audio.s3.us-east-1.amazonaws.com/audio.mp3"}
+def test_post_story_cache_miss_returns_streaming_url_without_invoking_graph(mocker):
+    """On cache miss, POST /story returns a streaming URL and does NO pipeline work."""
     _make_mock_conn(mocker, "backend.routes.stories.get_conn", fetchone=None)
-    with patch("backend.routes.stories.royal_graph", mock_graph):
+    mocker.patch.dict("os.environ", {"BACKEND_PUBLIC_URL": "https://api.example.com"})
+    with patch("backend.routes.stories.pre_tts_graph", MagicMock()):
         from backend.main import app
-        from fastapi.testclient import TestClient
         c = TestClient(app)
         response = c.post("/story", json={"princess": "elsa", "language": "en"})
     assert response.status_code == 200
-    assert "audio_url" in response.json()
+    audio_url = response.json()["audio_url"]
+    assert audio_url.startswith("https://api.example.com/story/stream?")
+    assert "princess=elsa" in audio_url
+    assert "language=en" in audio_url
+    assert "story_type=daily" in audio_url
 
 
 def test_post_story_rejects_unknown_princess(mocker):
-    mock_graph = MagicMock()
-    with patch("backend.routes.stories.royal_graph", mock_graph):
-        from backend.main import app
-        from fastapi.testclient import TestClient
-        c = TestClient(app)
-        response = c.post("/story", json={"princess": "unknown", "language": "en"})
+    from backend.main import app
+    c = TestClient(app)
+    response = c.post("/story", json={"princess": "unknown", "language": "en"})
     assert response.status_code == 422
 
 
 def test_post_story_returns_cached_audio_url_without_running_graph(mocker):
-    mock_graph = MagicMock()
     _make_mock_conn(mocker, "backend.routes.stories.get_conn",
                     fetchone=("https://royal-audio.s3.us-east-1.amazonaws.com/elsa.mp3",))
-    with patch("backend.routes.stories.royal_graph", mock_graph):
-        from backend.main import app
-        from fastapi.testclient import TestClient
-        c = TestClient(app)
-        response = c.post("/story", json={"princess": "elsa", "language": "en"})
+    from backend.main import app
+    c = TestClient(app)
+    response = c.post("/story", json={"princess": "elsa", "language": "en"})
     assert response.status_code == 200
     assert response.json()["audio_url"] == "https://royal-audio.s3.us-east-1.amazonaws.com/elsa.mp3"
-    mock_graph.invoke.assert_not_called()
 
 
 def test_get_today_stories_returns_cached_map(mocker):
     _make_mock_conn(mocker, "backend.routes.stories.get_conn",
                     fetchall=[("elsa", "https://royal-audio.s3.us-east-1.amazonaws.com/elsa.mp3")])
-    mock_graph = MagicMock()
-    with patch("backend.routes.stories.royal_graph", mock_graph):
-        from backend.main import app
-        from fastapi.testclient import TestClient
-        c = TestClient(app)
-        response = c.get("/story/today")
+    from backend.main import app
+    c = TestClient(app)
+    response = c.get("/story/today")
     assert response.status_code == 200
     assert response.json()["cached"]["elsa"] == "https://royal-audio.s3.us-east-1.amazonaws.com/elsa.mp3"
 
@@ -93,12 +85,9 @@ def test_get_story_today_princess_returns_story(mocker):
     _make_mock_conn(mocker, "backend.routes.stories.get_conn",
                     fetchone=("https://royal-audio.s3.us-east-1.amazonaws.com/elsa.mp3",
                               "Dear Emma, [PROUD] today you were brave...", None))
-    mock_graph = MagicMock()
-    with patch("backend.routes.stories.royal_graph", mock_graph):
-        from backend.main import app
-        from fastapi.testclient import TestClient
-        c = TestClient(app)
-        response = c.get("/story/today/elsa")
+    from backend.main import app
+    c = TestClient(app)
+    response = c.get("/story/today/elsa")
     assert response.status_code == 200
     assert response.json()["audio_url"] == "https://royal-audio.s3.us-east-1.amazonaws.com/elsa.mp3"
     assert response.json()["story_text"] == "Dear Emma, [PROUD] today you were brave..."
@@ -106,39 +95,44 @@ def test_get_story_today_princess_returns_story(mocker):
 
 def test_get_story_today_princess_returns_404_when_not_generated(mocker):
     _make_mock_conn(mocker, "backend.routes.stories.get_conn", fetchone=None)
-    mock_graph = MagicMock()
-    with patch("backend.routes.stories.royal_graph", mock_graph):
-        from backend.main import app
-        from fastapi.testclient import TestClient
-        c = TestClient(app)
-        response = c.get("/story/today/elsa")
+    from backend.main import app
+    c = TestClient(app)
+    response = c.get("/story/today/elsa")
     assert response.status_code == 404
 
 
-def test_post_story_life_lesson_triggers_graph(mocker):
-    mock_graph = MagicMock()
-    mock_graph.invoke.return_value = {"audio_url": "https://royal-audio.s3.us-east-1.amazonaws.com/ll.mp3"}
+def test_post_story_life_lesson_cache_miss_returns_streaming_url_with_story_type(mocker):
     _make_mock_conn(mocker, "backend.routes.stories.get_conn", fetchone=None)
-    with patch("backend.routes.stories.royal_graph", mock_graph):
+    mocker.patch.dict("os.environ", {"BACKEND_PUBLIC_URL": "https://api.example.com"})
+    with patch("backend.routes.stories.pre_tts_graph", MagicMock()):
         from backend.main import app
-        from fastapi.testclient import TestClient
         c = TestClient(app)
         response = c.post("/story", json={"princess": "elsa", "language": "en", "story_type": "life_lesson"})
     assert response.status_code == 200
-    call_args = mock_graph.invoke.call_args[0][0]
-    assert call_args["story_type"] == "life_lesson"
+    assert "story_type=life_lesson" in response.json()["audio_url"]
+
+
+def test_post_story_cache_miss_includes_child_id_in_streaming_url(mocker):
+    _make_mock_conn(mocker, "backend.routes.stories.get_conn", fetchone=None)
+    mocker.patch.dict("os.environ", {"BACKEND_PUBLIC_URL": "https://api.example.com"})
+    with patch("backend.routes.stories.pre_tts_graph", MagicMock()):
+        from backend.main import app
+        c = TestClient(app)
+        response = c.post("/story", json={
+            "princess": "elsa", "language": "en",
+            "child_id": "00000000-0000-0000-0000-000000000001",
+        })
+    assert response.status_code == 200
+    assert "child_id=00000000-0000-0000-0000-000000000001" in response.json()["audio_url"]
 
 
 def test_get_story_today_princess_life_lesson_returns_royal_challenge(mocker):
     _make_mock_conn(mocker, "backend.routes.stories.get_conn",
                     fetchone=("https://royal-audio.s3.us-east-1.amazonaws.com/elsa-ll.mp3",
                               "Once in Arendelle...", "Try sharing today."))
-    mock_graph = MagicMock()
-    with patch("backend.routes.stories.royal_graph", mock_graph):
-        from backend.main import app
-        from fastapi.testclient import TestClient
-        c = TestClient(app)
-        response = c.get("/story/today/elsa?type=life_lesson")
+    from backend.main import app
+    c = TestClient(app)
+    response = c.get("/story/today/elsa?type=life_lesson")
     assert response.status_code == 200
     assert response.json()["royal_challenge"] == "Try sharing today."
 
@@ -147,12 +141,9 @@ def test_get_story_today_princess_daily_returns_null_royal_challenge(mocker):
     _make_mock_conn(mocker, "backend.routes.stories.get_conn",
                     fetchone=("https://royal-audio.s3.us-east-1.amazonaws.com/elsa.mp3",
                               "Dear Emma...", None))
-    mock_graph = MagicMock()
-    with patch("backend.routes.stories.royal_graph", mock_graph):
-        from backend.main import app
-        from fastapi.testclient import TestClient
-        c = TestClient(app)
-        response = c.get("/story/today/elsa")
+    from backend.main import app
+    c = TestClient(app)
+    response = c.get("/story/today/elsa")
     assert response.status_code == 200
     assert response.json()["royal_challenge"] is None
 

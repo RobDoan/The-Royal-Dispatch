@@ -23,7 +23,6 @@ def _make_mock_conn(mocker, module_path, fetchone=_UNSET, fetchall=_UNSET):
 
 
 def make_client(mocker):
-    mocker.patch("backend.routes.stories.royal_graph")
     from backend.main import app
     return TestClient(app)
 

@@ -1,15 +1,16 @@
 import asyncio
-import concurrent.futures
 import logging
+import os
 from datetime import date
 from typing import Literal
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import RedirectResponse, StreamingResponse
 from pydantic import BaseModel
 
 from backend.db.client import get_conn
-from backend.graph import pre_tts_graph, royal_graph
+from backend.graph import pre_tts_graph
 from backend.nodes.store_result import store_result_from_bytes
 from backend.nodes.synthesize_voice import synthesize_voice_stream
 from backend.utils.child_detection import detect_children_in_brief
@@ -107,28 +108,21 @@ def post_story(req: StoryRequest):
             row = cur.fetchone()
     if row:
         return StoryResponse(audio_url=row[0])
-    initial_state = {
+
+    # Cache miss: return a streaming URL. The browser hits it, and THAT
+    # request runs the pipeline + streams ElevenLabs bytes.
+    params = {
         "princess": req.princess,
         "date": story_date,
-        "brief": "",
-        "tone": "",
-        "persona": {},
-        "story_type": req.story_type,
-        "situation": "",
-        "story_text": "",
-        "audio_url": "",
         "language": req.language,
+        "story_type": req.story_type,
         "timezone": req.timezone,
-        "child_id": req.child_id,
-        "child_name": "Emma",
     }
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-        future = executor.submit(royal_graph.invoke, initial_state)
-        try:
-            result = future.result(timeout=60)
-        except concurrent.futures.TimeoutError:
-            raise HTTPException(status_code=504, detail="Story generation timed out")
-    return StoryResponse(audio_url=result["audio_url"])
+    if req.child_id:
+        params["child_id"] = req.child_id
+    base = os.environ["BACKEND_PUBLIC_URL"].rstrip("/")
+    streaming_url = f"{base}/story/stream?{urlencode(params)}"
+    return StoryResponse(audio_url=streaming_url)
 
 
 def _lookup_cached_story(

@@ -17,6 +17,11 @@ from backend.utils.time_utils import get_logical_date_iso
 
 logger = logging.getLogger(__name__)
 
+# Track detached finalize tasks so the event loop doesn't GC them mid-flight.
+# asyncio only holds weak references to tasks started via create_task; without
+# a strong reference, a long-running task can silently disappear.
+_pending_finalize_tasks: set[asyncio.Task] = set()
+
 router = APIRouter()
 
 
@@ -175,7 +180,11 @@ async def _tee_and_save(pre_state: dict):
             logger.exception("ElevenLabs drain after disconnect failed")
             return
 
-    asyncio.create_task(_finalize(pre_state, bytes(buffer)))
+    # Detached from the request task: this task is owned by the event loop,
+    # so it survives the request's cancellation on client disconnect.
+    task = asyncio.create_task(_finalize(pre_state, bytes(buffer)))
+    _pending_finalize_tasks.add(task)
+    task.add_done_callback(_pending_finalize_tasks.discard)
 
 
 async def _finalize(pre_state: dict, audio_bytes: bytes) -> None:

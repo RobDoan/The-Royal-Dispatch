@@ -3,6 +3,13 @@ import pytest
 from unittest.mock import MagicMock
 
 
+@pytest.fixture(autouse=True, scope="session")
+def _auth_secret_default():
+    os.environ.setdefault("AUTH_SECRET", "test-secret-hex")
+    os.environ.setdefault("N8N_SHARED_SECRET", "test-n8n-secret")
+    os.environ.setdefault("FRONTEND_URL", "http://localhost:3000")
+
+
 @pytest.fixture
 def mock_db_pool(mocker):
     mock_pool = MagicMock()

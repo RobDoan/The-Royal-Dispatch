@@ -1,13 +1,13 @@
 import os
 import glob
 import json
-import secrets
 
 import yaml
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from backend.db.client import get_conn
+from backend.utils.auth_token import encode as encode_token
 
 router = APIRouter(prefix="/admin")
 
@@ -87,30 +87,41 @@ class PersonaResponse(BaseModel):
 def admin_list_users():
     with get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT id, name, telegram_chat_id, token, created_at FROM users ORDER BY created_at")
+            cur.execute("SELECT id, name, telegram_chat_id, created_at FROM users ORDER BY created_at")
             rows = cur.fetchall()
     return [
-        {"id": str(r[0]), "name": r[1], "telegram_chat_id": r[2], "token": r[3], "created_at": r[4].isoformat()}
+        {
+            "id": str(r[0]),
+            "name": r[1],
+            "telegram_chat_id": r[2],
+            "token": encode_token(r[2]),
+            "created_at": r[3].isoformat(),
+        }
         for r in rows
     ]
 
 
 @router.post("/users", response_model=UserResponse, status_code=201)
 def admin_create_user(req: CreateUserRequest):
-    token = "tk_" + secrets.token_hex(8)
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT id FROM users WHERE telegram_chat_id = %s", (req.telegram_chat_id,))
             if cur.fetchone():
                 raise HTTPException(status_code=400, detail="Telegram chat ID already in use")
             cur.execute(
-                """INSERT INTO users (name, telegram_chat_id, token)
-                   VALUES (%s, %s, %s)
-                   RETURNING id, name, telegram_chat_id, token, created_at""",
-                (req.name, req.telegram_chat_id, token),
+                """INSERT INTO users (name, telegram_chat_id)
+                   VALUES (%s, %s)
+                   RETURNING id, name, telegram_chat_id, created_at""",
+                (req.name, req.telegram_chat_id),
             )
             row = cur.fetchone()
-    return {"id": str(row[0]), "name": row[1], "telegram_chat_id": row[2], "token": row[3], "created_at": row[4].isoformat()}
+    return {
+        "id": str(row[0]),
+        "name": row[1],
+        "telegram_chat_id": row[2],
+        "token": encode_token(row[2]),
+        "created_at": row[3].isoformat(),
+    }
 
 
 @router.delete("/users/{user_id}", status_code=204)

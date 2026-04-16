@@ -39,25 +39,33 @@ def test_list_users_returns_empty_list(mocker):
 
 def test_list_users_returns_rows(mocker):
     _make_mock_conn(mocker, "backend.routes.admin.get_conn", fetchall=[
-        ("uuid-1", "Quy", 12345, "tk_abc", datetime(2026, 1, 1)),
+        # No token column in SELECT anymore
+        ("uuid-1", "Quy", 12345, datetime(2026, 1, 1)),
     ])
     client = make_client(mocker)
     response = client.get("/admin/users")
     assert response.status_code == 200
-    assert response.json()[0]["name"] == "Quy"
+    data = response.json()
+    assert data[0]["name"] == "Quy"
+    assert data[0]["telegram_chat_id"] == 12345
+    # Token is computed, not from DB
+    assert data[0]["token"].count(".") == 1
 
 
 def test_create_user_returns_created_user(mocker):
     mock_cursor = _make_mock_conn(mocker, "backend.routes.admin.get_conn")
     mock_cursor.fetchone.side_effect = [
         None,  # Uniqueness check: no existing user
-        ("uuid-1", "Quy", 12345, "tk_abc12345678def90", datetime(2026, 1, 1)),  # INSERT result
+        # INSERT result — no token column
+        ("uuid-1", "Quy", 12345, datetime(2026, 1, 1)),
     ]
-    mocker.patch("backend.routes.admin.secrets.token_hex", return_value="abc12345678def90")
     client = make_client(mocker)
     response = client.post("/admin/users", json={"name": "Quy", "telegram_chat_id": 12345})
     assert response.status_code == 201
-    assert response.json()["token"] == "tk_abc12345678def90"
+    body = response.json()
+    assert body["name"] == "Quy"
+    assert body["telegram_chat_id"] == 12345
+    assert body["token"].count(".") == 1  # HMAC token shape
 
 
 def test_create_user_rejects_missing_name(mocker):
@@ -67,9 +75,8 @@ def test_create_user_rejects_missing_name(mocker):
 
 
 def test_create_user_fails_if_telegram_chat_id_exists(mocker):
-    # Mock connection to return an existing user when checking uniqueness
     _make_mock_conn(mocker, "backend.routes.admin.get_conn",
-                    fetchone=("uuid-existing", "Existing User", 12345, "tk_existing", datetime(2026, 1, 1)))
+                    fetchone=("uuid-existing",))
     client = make_client(mocker)
     response = client.post("/admin/users", json={"name": "New User", "telegram_chat_id": 12345})
     assert response.status_code == 400

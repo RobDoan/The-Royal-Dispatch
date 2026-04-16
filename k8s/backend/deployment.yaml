@@ -21,6 +21,8 @@ spec:
           env:
             - name: QDRANT_URL
               value: "http://qdrant.qdrant.svc.cluster.local:6333"
+            - name: BACKEND_PUBLIC_URL
+              value: "http://api.royal.local"
             - name: ANTHROPIC_API_KEY
               valueFrom:
                 secretKeyRef:

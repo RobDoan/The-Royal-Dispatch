@@ -1,7 +1,11 @@
-from fastapi import APIRouter, HTTPException, Query
+import hmac
+import os
+
+from fastapi import APIRouter, HTTPException, Header, Query
 from pydantic import BaseModel
 
 from backend.db.client import get_conn
+from backend.utils.auth_token import encode as encode_token, decode as decode_token, InvalidTokenError
 
 router = APIRouter(prefix="/user")
 
@@ -54,3 +58,30 @@ def get_user_by_chat_id(chat_id: int = Query(...)):
     if not row:
         raise HTTPException(status_code=404, detail="User not found")
     return {"user_id": str(row[0]), "name": row[1]}
+
+
+class RegisterLinkRequest(BaseModel):
+    telegram_chat_id: int
+
+
+class RegisterLinkResponse(BaseModel):
+    token: str
+    onboarding_url: str
+
+
+@router.post("/register-link", response_model=RegisterLinkResponse)
+def register_link(
+    req: RegisterLinkRequest,
+    x_n8n_secret: str | None = Header(default=None, alias="X-N8N-Secret"),
+):
+    expected = os.environ.get("N8N_SHARED_SECRET")
+    if not expected or not hmac.compare_digest(x_n8n_secret or "", expected):
+        raise HTTPException(status_code=401, detail="Invalid or missing X-N8N-Secret header")
+    token = encode_token(req.telegram_chat_id)
+    frontend_url = os.environ.get("FRONTEND_URL", "").rstrip("/")
+    if not frontend_url:
+        raise HTTPException(status_code=500, detail="FRONTEND_URL is not configured")
+    return {
+        "token": token,
+        "onboarding_url": f"{frontend_url}/onboarding?token={token}",
+    }

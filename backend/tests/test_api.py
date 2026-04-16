@@ -42,7 +42,8 @@ def test_post_story_cache_miss_returns_streaming_url_without_invoking_graph(mock
     """On cache miss, POST /story returns a streaming URL and does NO pipeline work."""
     _make_mock_conn(mocker, "backend.routes.stories.get_conn", fetchone=None)
     mocker.patch.dict("os.environ", {"BACKEND_PUBLIC_URL": "https://api.example.com"})
-    with patch("backend.routes.stories.pre_tts_graph", MagicMock()):
+    mock_pre_tts = MagicMock()
+    with patch("backend.routes.stories.pre_tts_graph", mock_pre_tts):
         from backend.main import app
         c = TestClient(app)
         response = c.post("/story", json={"princess": "elsa", "language": "en"})
@@ -52,6 +53,7 @@ def test_post_story_cache_miss_returns_streaming_url_without_invoking_graph(mock
     assert "princess=elsa" in audio_url
     assert "language=en" in audio_url
     assert "story_type=daily" in audio_url
+    mock_pre_tts.invoke.assert_not_called()
 
 
 def test_post_story_rejects_unknown_princess(mocker):
@@ -104,18 +106,21 @@ def test_get_story_today_princess_returns_404_when_not_generated(mocker):
 def test_post_story_life_lesson_cache_miss_returns_streaming_url_with_story_type(mocker):
     _make_mock_conn(mocker, "backend.routes.stories.get_conn", fetchone=None)
     mocker.patch.dict("os.environ", {"BACKEND_PUBLIC_URL": "https://api.example.com"})
-    with patch("backend.routes.stories.pre_tts_graph", MagicMock()):
+    mock_pre_tts = MagicMock()
+    with patch("backend.routes.stories.pre_tts_graph", mock_pre_tts):
         from backend.main import app
         c = TestClient(app)
         response = c.post("/story", json={"princess": "elsa", "language": "en", "story_type": "life_lesson"})
     assert response.status_code == 200
     assert "story_type=life_lesson" in response.json()["audio_url"]
+    mock_pre_tts.invoke.assert_not_called()
 
 
 def test_post_story_cache_miss_includes_child_id_in_streaming_url(mocker):
     _make_mock_conn(mocker, "backend.routes.stories.get_conn", fetchone=None)
     mocker.patch.dict("os.environ", {"BACKEND_PUBLIC_URL": "https://api.example.com"})
-    with patch("backend.routes.stories.pre_tts_graph", MagicMock()):
+    mock_pre_tts = MagicMock()
+    with patch("backend.routes.stories.pre_tts_graph", mock_pre_tts):
         from backend.main import app
         c = TestClient(app)
         response = c.post("/story", json={
@@ -124,6 +129,7 @@ def test_post_story_cache_miss_includes_child_id_in_streaming_url(mocker):
         })
     assert response.status_code == 200
     assert "child_id=00000000-0000-0000-0000-000000000001" in response.json()["audio_url"]
+    mock_pre_tts.invoke.assert_not_called()
 
 
 def test_get_story_today_princess_life_lesson_returns_royal_challenge(mocker):

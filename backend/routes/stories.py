@@ -96,18 +96,11 @@ def post_brief(req: BriefRequest):
 @router.post("/story", response_model=StoryResponse)
 def post_story(req: StoryRequest):
     story_date = req.date or get_logical_date_iso(req.timezone)
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """SELECT audio_url FROM stories
-                   WHERE date = %s AND princess = %s AND story_type = %s
-                     AND language = %s
-                     AND child_id IS NOT DISTINCT FROM %s""",
-                (story_date, req.princess, req.story_type, req.language, req.child_id),
-            )
-            row = cur.fetchone()
-    if row:
-        return StoryResponse(audio_url=row[0])
+    cached = _lookup_cached_story(
+        story_date, req.princess, req.story_type, req.language, req.child_id
+    )
+    if cached:
+        return StoryResponse(audio_url=cached)
 
     # Cache miss: return a streaming URL. The browser hits it, and THAT
     # request runs the pipeline + streams ElevenLabs bytes.

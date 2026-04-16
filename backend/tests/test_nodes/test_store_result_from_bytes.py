@@ -1,7 +1,7 @@
 import os
 from unittest.mock import MagicMock
 
-from backend.state import RoyalState
+from backend.state import RoyalState, RoyalStateOptional
 from backend.nodes.store_result import store_result_from_bytes
 
 
@@ -17,7 +17,7 @@ def _mock_conn(mocker):
     return mock_cursor
 
 
-def _base_state() -> RoyalState:
+def _base_state() -> RoyalStateOptional:
     return RoyalState(
         princess="elsa",
         date="2026-04-16",

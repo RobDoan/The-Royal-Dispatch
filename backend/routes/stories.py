@@ -1,13 +1,17 @@
+import asyncio
 import concurrent.futures
 import logging
 from datetime import date
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import RedirectResponse, StreamingResponse
 from pydantic import BaseModel
 
 from backend.db.client import get_conn
-from backend.graph import royal_graph
+from backend.graph import pre_tts_graph, royal_graph
+from backend.nodes.store_result import store_result_from_bytes
+from backend.nodes.synthesize_voice import synthesize_voice_stream
 from backend.utils.child_detection import detect_children_in_brief
 from backend.utils.time_utils import get_logical_date_iso
 
@@ -120,6 +124,107 @@ def post_story(req: StoryRequest):
         except concurrent.futures.TimeoutError:
             raise HTTPException(status_code=504, detail="Story generation timed out")
     return StoryResponse(audio_url=result["audio_url"])
+
+
+def _lookup_cached_story(
+    story_date: str, princess: str, story_type: str, language: str, child_id: str | None
+) -> str | None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """SELECT audio_url FROM stories
+                   WHERE date = %s AND princess = %s AND story_type = %s
+                     AND language = %s
+                     AND child_id IS NOT DISTINCT FROM %s""",
+                (story_date, princess, story_type, language, child_id),
+            )
+            row = cur.fetchone()
+    return row[0] if row else None
+
+
+async def _tee_and_save(pre_state: dict):
+    """Stream ElevenLabs chunks to the client while buffering for S3 upload.
+
+    On normal completion: schedules finalize() to upload MP3 + insert row.
+    On client disconnect: drains remaining ElevenLabs chunks then schedules finalize.
+    On ElevenLabs error mid-stream: returns without persisting (next tap regenerates).
+    """
+    buffer = bytearray()
+    chunks = synthesize_voice_stream(
+        voice_id=pre_state["persona"]["voice_id"],
+        text=pre_state["story_text"],
+    )
+    client_disconnected = False
+    try:
+        for chunk in chunks:
+            buffer.extend(chunk)
+            try:
+                yield chunk
+            except (GeneratorExit, asyncio.CancelledError):
+                client_disconnected = True
+                break
+    except Exception:
+        logger.exception("ElevenLabs streaming failed mid-generation")
+        return
+
+    if client_disconnected:
+        try:
+            for chunk in chunks:
+                buffer.extend(chunk)
+        except Exception:
+            logger.exception("ElevenLabs drain after disconnect failed")
+            return
+
+    asyncio.create_task(_finalize(pre_state, bytes(buffer)))
+
+
+async def _finalize(pre_state: dict, audio_bytes: bytes) -> None:
+    try:
+        await asyncio.to_thread(store_result_from_bytes, pre_state, audio_bytes)
+    except Exception:
+        logger.exception("finalize failed to persist audio/row")
+
+
+@router.get("/story/stream")
+async def get_story_stream(
+    princess: Literal["elsa", "belle", "cinderella", "ariel", "rapunzel", "moana", "raya", "mirabel", "chase", "marshall", "skye", "rubble"],
+    date: str,
+    language: Literal["en", "vi"],
+    story_type: Literal["daily", "life_lesson"],
+    timezone: str,
+    child_id: str | None = None,
+):
+    # Re-check the cache: if it filled between POST and GET, redirect to S3.
+    cached = _lookup_cached_story(date, princess, story_type, language, child_id)
+    if cached:
+        return RedirectResponse(cached, status_code=302)
+
+    initial_state = {
+        "princess": princess,
+        "date": date,
+        "brief": "",
+        "tone": "",
+        "persona": {},
+        "story_type": story_type,
+        "situation": "",
+        "story_text": "",
+        "audio_url": "",
+        "language": language,
+        "timezone": timezone,
+        "child_id": child_id,
+        "child_name": "Emma",
+    }
+
+    # Run the pre-TTS pipeline synchronously in a thread so it doesn't block
+    # the event loop (LLM calls are network-bound but the synchronous client
+    # still blocks).
+    pre_state = await asyncio.to_thread(pre_tts_graph.invoke, initial_state)
+
+    return StreamingResponse(
+        _tee_and_save(pre_state),
+        media_type="audio/mpeg",
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @router.get("/story/today")

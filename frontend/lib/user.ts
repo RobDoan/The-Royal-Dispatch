@@ -61,3 +61,62 @@ export async function fetchUserProfile(token: string): Promise<UserProfile | nul
     return null;
   }
 }
+
+export interface UpdateUserPayload {
+  name: string;
+  children: Array<{
+    id: string | null;
+    name: string;
+    preferences: { favorite_princesses: string[] };
+  }>;
+}
+
+export interface UpdateUserError {
+  status: number;
+  detail: string;
+}
+
+export interface UpdateUserResult {
+  profile: UserProfile | null;
+  error: UpdateUserError | null;
+}
+
+export async function updateUserProfile(
+  token: string,
+  payload: UpdateUserPayload,
+): Promise<UpdateUserResult> {
+  try {
+    const res = await fetch(`${API_URL}/user/me?token=${encodeURIComponent(token)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) {
+      let detail = 'Request failed';
+      try {
+        const body = await res.json();
+        if (typeof body?.detail === 'string') detail = body.detail;
+      } catch {
+        // ignore
+      }
+      return { profile: null, error: { status: res.status, detail } };
+    }
+    const profile = (await res.json()) as UserProfile;
+    return { profile, error: null };
+  } catch {
+    return { profile: null, error: { status: 0, detail: 'Network error' } };
+  }
+}
+
+export async function fetchPersonas(): Promise<Persona[]> {
+  try {
+    const res = await fetch(`${API_URL}/admin/personas`, {
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (!res.ok) return [];
+    return (await res.json()) as Persona[];
+  } catch {
+    return [];
+  }
+}

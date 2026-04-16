@@ -1,0 +1,178 @@
+name: Build and Push Images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'admin/**'
+
+env:
+  REGISTRY: docker.io
+  GITOPS_REPO: RobDoan/gitops-rackspace
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      admin: ${{ steps.filter.outputs.admin }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            frontend:
+              - 'frontend/**'
+            admin:
+              - 'admin/**'
+
+  build-backend:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.meta.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        run: echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: true
+          tags: |
+            quydoan/royal-dispatch-backend:${{ steps.meta.outputs.sha }}
+            quydoan/royal-dispatch-backend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-frontend:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.meta.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        run: echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: frontend/Dockerfile
+          push: true
+          tags: |
+            quydoan/royal-dispatch-frontend:${{ steps.meta.outputs.sha }}
+            quydoan/royal-dispatch-frontend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-admin:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.admin == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.meta.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        run: echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./admin
+          file: admin/Dockerfile
+          push: true
+          tags: |
+            quydoan/royal-dispatch-admin:${{ steps.meta.outputs.sha }}
+            quydoan/royal-dispatch-admin:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  update-gitops:
+    needs: [build-backend, build-frontend, build-admin]
+    if: always() && (needs.build-backend.result == 'success' || needs.build-frontend.result == 'success' || needs.build-admin.result == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout GitOps repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.GITOPS_REPO }}
+          ssh-key: ${{ secrets.GITOPS_DEPLOY_KEY }}
+          path: gitops
+
+      - name: Update image tags
+        working-directory: gitops
+        run: |
+          SHA="${GITHUB_SHA::7}"
+          KUSTOMIZATION="apps/royal-dispatch/base/kustomization.yaml"
+
+          # Update backend tag if backend was built
+          if [ "${{ needs.build-backend.result }}" == "success" ]; then
+            sed -i "/name: quydoan\/royal-dispatch-backend/{n;s/newTag: .*/newTag: ${SHA}/}" "$KUSTOMIZATION"
+          fi
+
+          # Update frontend tag if frontend was built
+          if [ "${{ needs.build-frontend.result }}" == "success" ]; then
+            sed -i "/name: quydoan\/royal-dispatch-frontend/{n;s/newTag: .*/newTag: ${SHA}/}" "$KUSTOMIZATION"
+          fi
+
+          # Update admin tag if admin was built
+          if [ "${{ needs.build-admin.result }}" == "success" ]; then
+            sed -i "/name: quydoan\/royal-dispatch-admin/{n;s/newTag: .*/newTag: ${SHA}/}" "$KUSTOMIZATION"
+          fi
+
+      - name: Commit and push
+        working-directory: gitops
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+          git commit -m "chore: update royal-dispatch images to ${GITHUB_SHA::7}"
+          git push

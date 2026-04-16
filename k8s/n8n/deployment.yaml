@@ -45,6 +45,11 @@ spec:
                 secretKeyRef:
                   name: n8n-secret
                   key: PARENT_CHAT_ID
+            - name: N8N_SHARED_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secret
+                  key: N8N_SHARED_SECRET
           volumeMounts:
             - name: n8n-data
               mountPath: /home/node/.n8n

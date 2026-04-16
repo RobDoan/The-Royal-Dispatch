@@ -56,6 +56,21 @@ spec:
                 secretKeyRef:
                   name: backend-secret
                   key: DATABASE_URL
+            - name: AUTH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: AUTH_SECRET
+            - name: FRONTEND_URL
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: FRONTEND_URL
+            - name: N8N_SHARED_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: N8N_SHARED_SECRET
           readinessProbe:
             httpGet:
               path: /docs

@@ -1,4 +1,5 @@
 import os
+from typing import Iterator
 from elevenlabs.client import ElevenLabs
 from backend.state import RoyalStateOptional
 from backend.storage.client import get_storage
@@ -37,3 +38,18 @@ def synthesize_voice(state: RoyalStateOptional) -> dict:
     )
     audio_url = f"{public_url}/{bucket}/{filename}"
     return {"audio_url": audio_url}
+
+
+def synthesize_voice_stream(voice_id: str, text: str) -> Iterator[bytes]:
+    """Stream MP3 chunks from ElevenLabs without buffering or uploading.
+
+    Caller is responsible for consuming the iterator, buffering bytes, and
+    persisting the final MP3 to S3 via store_result_from_bytes.
+    """
+    client = get_elevenlabs_client()
+    return client.text_to_speech.convert(
+        voice_id=voice_id,
+        text=text,
+        model_id="eleven_v3",
+        output_format="mp3_44100_128",
+    )

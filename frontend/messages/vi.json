@@ -47,6 +47,25 @@
   },
   "onboarding": {
     "favoritesCount": "Đã chọn {selected} / {max}",
-    "favoritesEmptyHint": "hiện tất cả"
+    "favoritesEmptyHint": "hiện tất cả",
+    "headingNew": "Your Family",
+    "headingEdit": "Edit Your Family",
+    "subheading": "Tell us about your children",
+    "yourName": "Your name",
+    "childName": "Child name",
+    "favoriteCharacters": "Favorite characters",
+    "addChild": "Add Child",
+    "remove": "Remove",
+    "saving": "Saving...",
+    "saveAndContinue": "Save & Continue",
+    "cancel": "Cancel",
+    "confirmRemove": "Remove",
+    "confirmRemoveTitle": "Remove child?",
+    "confirmRemoveBody": "Remove {name}? Their saved memories will be deleted and past stories will be hidden.",
+    "errParentNameRequired": "Please enter your name",
+    "errChildNameRequired": "Please enter the child's name",
+    "errNoChildren": "Add at least one child",
+    "errExpired": "Your link has expired. Type /register in Telegram for a new one.",
+    "errGeneric": "Something went wrong. Please try again."
   }
 }

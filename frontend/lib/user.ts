@@ -9,8 +9,8 @@ export interface ChildInfo {
 }
 
 export interface UserProfile {
-  user_id: string;
-  name: string;
+  user_id: string | null;
+  name: string | null;
   children: ChildInfo[];
 }
 

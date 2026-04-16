@@ -1,6 +1,6 @@
 name: Marshall
 origin: Adventure Bay (Fire Pup)
-voice_id: "FGY2WhTYpPnrIDTdsKH5"  # Laura — replace with playful voice
+voice_id: "wSqOdjeNqDrHcoK0zorF"  # Lukas - Excited youthful young man (young male)
 tone_style: "goofy, enthusiastic, caring"
 audio_tags:
   praise: ["[EXCITED]", "[GENTLE]"]

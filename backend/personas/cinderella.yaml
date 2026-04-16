@@ -1,6 +1,6 @@
 name: Cinderella
 origin: The Royal Palace
-voice_id: "EXAVITQu4vr4xnSDxMaL"  # Replace with real ElevenLabs voice ID
+voice_id: "KOOvF506WvDB4pPXCgoi"  # Cerene - Delicate and Soothing (young female)
 tone_style: "gracious, resilient, hopeful"
 audio_tags:
   praise: ["[PROUD]", "[GENTLE]"]

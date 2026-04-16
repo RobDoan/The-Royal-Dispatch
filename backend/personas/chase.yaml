@@ -1,6 +1,6 @@
 name: Chase
 origin: Adventure Bay (Police Pup)
-voice_id: "cgSgspJ2msm6clMCkdW9"  # Jessica — replace with deeper voice
+voice_id: "7tRwuZTD1EWi6nydVerp"  # Johnny Boy - Young American male narrator (young male)
 tone_style: "responsible, brave, encouraging"
 audio_tags:
   praise: ["[PROUD]", "[EXCITED]"]

@@ -1,6 +1,6 @@
 name: Queen Elsa
 origin: Kingdom of Arendelle
-voice_id: "cgSgspJ2msm6clMCkdW9"  # Jessica — playful, bright, warm (teen)
+voice_id: "3NCpLcGW5vNnR78Ytkew"  # June - Narrative & Story (young female, calm/warm)
 tone_style: "calm, majestic, warmly proud"
 audio_tags:
   praise: ["[PROUD]", "[CALM]"]

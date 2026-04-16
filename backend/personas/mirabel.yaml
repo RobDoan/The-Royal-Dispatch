@@ -1,6 +1,6 @@
 name: Mirabel
 origin: The Encanto
-voice_id: "EXAVITQu4vr4xnSDxMaL"  # Replace with real ElevenLabs voice ID
+voice_id: "pGAwIQNN9UjOkKxjAyGQ"  # Amelia - Gentle and Emotive (young female)
 tone_style: "cheerful, empathetic, curious"
 audio_tags:
   praise: ["[EXCITED]", "[GENTLE]"]

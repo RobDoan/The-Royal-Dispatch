@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The Royal Dispatch is a bedtime storytelling PWA that supports multiple children. Parents send a nightly brief via Telegram → n8n transcribes and POSTs it → LLM detects which child the brief is about → FastAPI + LangGraph generates a personalized princess letter per child → ElevenLabs synthesizes audio → Each child taps a princess on their iPad and hears their letter.
 
+**Parent onboarding** happens via Telegram: parent sends `/register` → n8n calls backend → backend returns a signed onboarding URL → parent fills in their name + children (name + favorite princesses) in a web form → same URL works for editing later.
+
 **Admin UI** is available at `/admin` for managing users and adding/editing children.
 
 ## Commands
@@ -65,10 +67,17 @@ docker compose up --build
 ### Request Flow
 
 ```
+# Stories
 POST /brief  →  LLM detects which child(ren) → stores one brief row per detected child
 POST /story  →  cache check → LangGraph pipeline (scoped by child_id) → audio_url
 GET  /story/today  →  cached stories for today
 GET  /story/today/{princess}  →  full detail (text + audio_url + challenge), scoped by child_id
+
+# Onboarding (parent self-service)
+POST /user/register-link  →  (n8n → backend, auth: X-N8N-Secret) returns signed onboarding URL for chat_id
+GET  /user/me?token=...    →  parent profile + children (verifies HMAC token)
+PUT  /user/me?token=...    →  atomic reconcile: create/update user, add/update/remove children
+GET  /user/by-chat-id      →  lookup user by telegram chat_id (admin)
 ```
 
 ### LangGraph Pipeline (`backend/graph.py`)
@@ -107,6 +116,8 @@ The "logical day" resets at 3 AM in the user's timezone (not midnight). `get_log
 ### Frontend
 
 - Next.js App Router with `[locale]` segment for i18n (next-intl, en/vi)
+- `/[locale]/onboarding?token=...` — parent onboarding form (name + children with favorite princesses). Token is persisted to `localStorage` so the parent stays signed in on return visits.
+- `/[locale]/pick-child` — post-onboarding destination; per-child princess picker
 - `frontend/CLAUDE.md` re-exports `frontend/AGENTS.md` — read it before writing frontend code: this Next.js version has breaking changes from training data. Check `node_modules/next/dist/docs/` for the actual API.
 ### Database (PostgreSQL)
 
@@ -115,15 +126,22 @@ Tables: `users` (parents), `children` (linked to users), `briefs` (with child_id
 ### Admin UI
 
 - Available at `/admin` (Next.js app at `admin/`)
-- Manage users (parents) with Telegram Chat ID and auth token
+- Manage users (parents) by Telegram Chat ID; auth tokens are **not stored** — they are derived on the fly by HMAC-signing the chat_id with `AUTH_SECRET` (see `backend/utils/auth_token.py`)
 - Add/remove children per parent
 - Child name must be unique per parent (enforced by DB constraint)
+
+### Authentication
+
+Two separate secrets guard two different trust boundaries:
+
+- **`AUTH_SECRET`** — HMAC-SHA256 key used to sign onboarding tokens. The token payload embeds `chat_id`; backend verifies the signature on every `/user/me` call (timing-safe compare). No server-side session store. Think of it as a JWT signing key.
+- **`N8N_SHARED_SECRET`** — server-to-server bearer secret. n8n sends it as `X-N8N-Secret` when calling `POST /user/register-link` so only n8n can mint onboarding links for arbitrary `chat_id`s. Compromise of the onboarding page token does not grant the ability to mint new ones.
 
 ## Key Env Vars
 
 | File | Vars |
 |---|---|
-| `backend/.env` | `ANTHROPIC_API_KEY`, `ELEVENLABS_API_KEY`, `DATABASE_URL`, `POSTGRES_PASSWORD`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_ENDPOINT_URL`, `S3_PUBLIC_URL`, `S3_BUCKET`, `QDRANT_URL`, `OPENAI_API_KEY` |
+| `backend/.env` | `ANTHROPIC_API_KEY`, `ELEVENLABS_API_KEY`, `DATABASE_URL`, `POSTGRES_PASSWORD`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_ENDPOINT_URL`, `S3_PUBLIC_URL`, `S3_BUCKET`, `QDRANT_URL`, `OPENAI_API_KEY`, `AUTH_SECRET`, `FRONTEND_URL`, `N8N_SHARED_SECRET` |
 | `frontend/.env.local` | `NEXT_PUBLIC_API_URL` |
 | `admin/.env.local` | `NEXT_PUBLIC_API_URL` |
 

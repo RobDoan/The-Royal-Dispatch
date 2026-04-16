@@ -16,9 +16,6 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - AUTH_SECRET=${AUTH_SECRET}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
-      - N8N_SHARED_SECRET=${N8N_SHARED_SECRET}
     env_file:
       - backend/.env
     restart: unless-stopped

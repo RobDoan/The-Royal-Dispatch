@@ -20,7 +20,9 @@ jobs:
       admin: ${{ steps.filter.outputs.admin }}
     steps:
       - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
+      - name: Debug with tmate
+        uses: mxschmitt/action-tmate@v3
+      - uses: dorny/paths-filter@v3.0.2
         id: filter
         with:
           filters: |

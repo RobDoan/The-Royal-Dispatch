@@ -1,9 +1,12 @@
 import asyncio
+import json
 import logging
 import os
+import time
 from datetime import date
 from typing import Literal
 from urllib.parse import urlencode
+from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import RedirectResponse, StreamingResponse
@@ -22,6 +25,30 @@ logger = logging.getLogger(__name__)
 # asyncio only holds weak references to tasks started via create_task; without
 # a strong reference, a long-running task can silently disappear.
 _pending_finalize_tasks: set[asyncio.Task] = set()
+
+# In-memory cache for pre-TTS pipeline results, keyed by generation_id.
+# The SSE /story/generate endpoint stores them here so /story/stream can
+# pick them up without re-running the LLM.
+_generation_cache: dict[str, tuple[dict, float]] = {}
+_GENERATION_CACHE_TTL = 300  # seconds
+
+
+def _cache_generation(generation_id: str, pre_state: dict) -> None:
+    now = time.time()
+    expired = [k for k, (_, ts) in _generation_cache.items() if now - ts > _GENERATION_CACHE_TTL]
+    for k in expired:
+        del _generation_cache[k]
+    _generation_cache[generation_id] = (pre_state, now)
+
+
+def _pop_generation(generation_id: str) -> dict | None:
+    entry = _generation_cache.pop(generation_id, None)
+    if not entry:
+        return None
+    pre_state, ts = entry
+    if time.time() - ts > _GENERATION_CACHE_TTL:
+        return None
+    return pre_state
 
 router = APIRouter()
 
@@ -181,6 +208,95 @@ async def _finalize(pre_state: dict, audio_bytes: bytes) -> None:
         logger.exception("finalize failed to persist audio/row")
 
 
+@router.get("/story/generate")
+async def generate_story_sse(
+    princess: Literal["elsa", "belle", "cinderella", "ariel", "rapunzel", "moana", "raya", "mirabel", "chase", "marshall", "skye", "rubble"],
+    language: Literal["en", "vi"] = "en",
+    story_type: Literal["daily", "life_lesson"] = "daily",
+    timezone: str = "America/Los_Angeles",
+    child_id: str | None = None,
+):
+    """SSE endpoint: streams generation progress so the frontend can show
+    story text immediately when the LLM finishes (before TTS)."""
+    story_date = get_logical_date_iso(timezone)
+
+    # ── cached story ──────────────────────────────────────────────
+    cached = _lookup_cached_story(story_date, princess, story_type, language, child_id)
+    if cached:
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """SELECT story_text, royal_challenge FROM stories
+                       WHERE date = %s AND princess = %s AND story_type = %s
+                         AND language = %s AND child_id IS NOT DISTINCT FROM %s""",
+                    (story_date, princess, story_type, language, child_id),
+                )
+                row = cur.fetchone()
+        story_text = row[0] if row else ""
+        royal_challenge = row[1] if row else None
+
+        async def cached_events():
+            yield f"event: cached\ndata: {json.dumps({'story_text': story_text, 'royal_challenge': royal_challenge, 'audio_url': cached})}\n\n"
+
+        return StreamingResponse(
+            cached_events(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
+        )
+
+    # ── generate new story ────────────────────────────────────────
+    generation_id = str(uuid4())
+
+    async def events():
+        yield "event: status\ndata: generating\n\n"
+
+        initial_state = {
+            "princess": princess,
+            "date": story_date,
+            "brief": "",
+            "tone": "",
+            "persona": {},
+            "story_type": story_type,
+            "situation": "",
+            "story_text": "",
+            "audio_url": "",
+            "language": language,
+            "timezone": timezone,
+            "child_id": child_id,
+            "child_name": "Emma",
+        }
+
+        try:
+            pre_state = await asyncio.to_thread(pre_tts_graph.invoke, initial_state)
+        except Exception:
+            logger.exception("Story generation failed")
+            yield "event: error\ndata: generation_failed\n\n"
+            return
+
+        _cache_generation(generation_id, pre_state)
+
+        params_dict: dict[str, str] = {
+            "princess": princess,
+            "date": story_date,
+            "language": language,
+            "story_type": story_type,
+            "timezone": timezone,
+            "generation_id": generation_id,
+        }
+        if child_id:
+            params_dict["child_id"] = child_id
+        base = os.environ["BACKEND_PUBLIC_URL"].rstrip("/")
+        audio_url = f"{base}/story/stream?{urlencode(params_dict)}"
+
+        yield f"event: ready\ndata: {json.dumps({'story_text': pre_state.get('story_text', ''), 'royal_challenge': pre_state.get('royal_challenge'), 'audio_url': audio_url})}\n\n"
+
+    return StreamingResponse(
+        events(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
+    )
+
+
 @router.get("/story/stream")
 async def get_story_stream(
     princess: Literal["elsa", "belle", "cinderella", "ariel", "rapunzel", "moana", "raya", "mirabel", "chase", "marshall", "skye", "rubble"],
@@ -189,32 +305,33 @@ async def get_story_stream(
     story_type: Literal["daily", "life_lesson"],
     timezone: str,
     child_id: str | None = None,
+    generation_id: str | None = None,
 ):
     # Re-check the cache: if it filled between POST and GET, redirect to S3.
     cached = _lookup_cached_story(date, princess, story_type, language, child_id)
     if cached:
         return RedirectResponse(cached, status_code=302)
 
-    initial_state = {
-        "princess": princess,
-        "date": date,
-        "brief": "",
-        "tone": "",
-        "persona": {},
-        "story_type": story_type,
-        "situation": "",
-        "story_text": "",
-        "audio_url": "",
-        "language": language,
-        "timezone": timezone,
-        "child_id": child_id,
-        "child_name": "Emma",
-    }
+    # If the SSE /story/generate endpoint already ran the LLM, reuse its result.
+    pre_state = _pop_generation(generation_id) if generation_id else None
 
-    # Run the pre-TTS pipeline synchronously in a thread so it doesn't block
-    # the event loop (LLM calls are network-bound but the synchronous client
-    # still blocks).
-    pre_state = await asyncio.to_thread(pre_tts_graph.invoke, initial_state)
+    if not pre_state:
+        initial_state = {
+            "princess": princess,
+            "date": date,
+            "brief": "",
+            "tone": "",
+            "persona": {},
+            "story_type": story_type,
+            "situation": "",
+            "story_text": "",
+            "audio_url": "",
+            "language": language,
+            "timezone": timezone,
+            "child_id": child_id,
+            "child_name": "Emma",
+        }
+        pre_state = await asyncio.to_thread(pre_tts_graph.invoke, initial_state)
 
     return StreamingResponse(
         _tee_and_save(pre_state),

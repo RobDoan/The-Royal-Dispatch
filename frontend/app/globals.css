@@ -266,6 +266,28 @@
   .gold-gradient-bg {
     background: linear-gradient(135deg, #FFD700, #FFA500);
   }
+
+  /* ── Story Waiting Animations ─────────────────────────── */
+  @keyframes sparkle-drift {
+    0%, 100% { opacity: 0; transform: translateY(0) scale(0.4); }
+    15% { opacity: 0.9; }
+    50% { transform: translateY(-40px) scale(1.1); }
+    85% { opacity: 0.7; }
+  }
+  @keyframes quill-write {
+    0%, 100% { transform: rotate(-8deg) translateY(0); }
+    25% { transform: rotate(4deg) translateY(-2px); }
+    50% { transform: rotate(-4deg) translateY(1px); }
+    75% { transform: rotate(6deg) translateY(-3px); }
+  }
+  @keyframes glow-breathe {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.15); }
+  }
+  @keyframes dot-pulse {
+    0%, 80%, 100% { opacity: 0.25; transform: scale(0.7); }
+    40% { opacity: 1; transform: scale(1.15); }
+  }
 }
 
 @media (prefers-color-scheme: dark) {

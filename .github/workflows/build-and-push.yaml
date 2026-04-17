@@ -10,7 +10,6 @@ on:
 
 env:
   REGISTRY: docker.io
-  GITOPS_REPO: RobDoan/gitops-rackspace
 
 jobs:
   detect-changes:
@@ -133,46 +132,3 @@ jobs:
             quydoan/royal-dispatch-admin:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-  update-gitops:
-    needs: [build-backend, build-frontend, build-admin]
-    if: always() && (needs.build-backend.result == 'success' || needs.build-frontend.result == 'success' || needs.build-admin.result == 'success')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout GitOps repo
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ env.GITOPS_REPO }}
-          ssh-key: ${{ secrets.GITOPS_DEPLOY_KEY }}
-          path: gitops
-
-      - name: Update image tags
-        working-directory: gitops
-        run: |
-          SHA="${GITHUB_SHA::7}"
-          KUSTOMIZATION="apps/royal-dispatch/base/kustomization.yaml"
-
-          # Update backend tag if backend was built
-          if [ "${{ needs.build-backend.result }}" == "success" ]; then
-            sed -i "/name: quydoan\/royal-dispatch-backend/{n;s/newTag: .*/newTag: ${SHA}/}" "$KUSTOMIZATION"
-          fi
-
-          # Update frontend tag if frontend was built
-          if [ "${{ needs.build-frontend.result }}" == "success" ]; then
-            sed -i "/name: quydoan\/royal-dispatch-frontend/{n;s/newTag: .*/newTag: ${SHA}/}" "$KUSTOMIZATION"
-          fi
-
-          # Update admin tag if admin was built
-          if [ "${{ needs.build-admin.result }}" == "success" ]; then
-            sed -i "/name: quydoan\/royal-dispatch-admin/{n;s/newTag: .*/newTag: ${SHA}/}" "$KUSTOMIZATION"
-          fi
-
-      - name: Commit and push
-        working-directory: gitops
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git diff --cached --quiet && echo "No changes to commit" && exit 0
-          git commit -m "chore: update royal-dispatch images to ${GITHUB_SHA::7}"
-          git push

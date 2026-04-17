@@ -30,6 +30,65 @@ export async function requestStory(
   return url;
 }
 
+// ── SSE-based story generation ────────────────────────────────────
+// Connects to the backend SSE endpoint which streams events as the
+// pipeline progresses: status → ready (with text + audio URL).
+// This replaces the old POST + poll approach so the frontend can
+// render story text immediately when the LLM finishes.
+
+export interface GenerationEvent {
+  type: 'status' | 'ready' | 'cached' | 'error';
+  storyText?: string;
+  royalChallenge?: string | null;
+  audioUrl?: string;
+}
+
+export function generateStorySSE(
+  princess: Princess,
+  language: Language,
+  storyType: StoryType = 'daily',
+  childId?: string | null,
+  onEvent?: (event: GenerationEvent) => void,
+): () => void {
+  const params = new URLSearchParams({ princess, language, story_type: storyType });
+  if (childId) params.set('child_id', childId);
+
+  const eventSource = new EventSource(`/api/story/generate?${params}`);
+
+  function handleData(type: 'ready' | 'cached', e: MessageEvent) {
+    const data = JSON.parse(e.data);
+    const url: string = data.audio_url || '';
+    const streamIdx = url.indexOf('/story/stream');
+    onEvent?.({
+      type,
+      storyText: data.story_text || '',
+      royalChallenge: data.royal_challenge ?? null,
+      audioUrl: streamIdx !== -1 ? `/api${url.substring(streamIdx)}` : url,
+    });
+    eventSource.close();
+  }
+
+  eventSource.addEventListener('status', () => {
+    onEvent?.({ type: 'status' });
+  });
+
+  eventSource.addEventListener('ready', (e) => handleData('ready', e as MessageEvent));
+  eventSource.addEventListener('cached', (e) => handleData('cached', e as MessageEvent));
+
+  eventSource.addEventListener('error', () => {
+    onEvent?.({ type: 'error' });
+    eventSource.close();
+  });
+
+  eventSource.onerror = () => {
+    if (eventSource.readyState === EventSource.CLOSED) return;
+    onEvent?.({ type: 'error' });
+    eventSource.close();
+  };
+
+  return () => eventSource.close();
+}
+
 export async function fetchStory(
   princess: Princess,
   storyType: StoryType = 'daily',

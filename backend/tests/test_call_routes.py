@@ -90,3 +90,46 @@ def test_call_end_stores_record_and_extracts_memories(client, mocker):
 def test_call_end_missing_fields_returns_422(client):
     response = client.post("/call/end", json={"session_id": "x"})
     assert response.status_code == 422
+
+
+def test_full_call_flow(client, mocker):
+    """Simulate a complete call: start -> tts -> end."""
+    # Setup mocks
+    _make_mock_conn(mocker, "backend.routes.call.get_conn", fetchone=("Lily",))
+    mocker.patch(
+        "backend.routes.call.fetch_memories",
+        return_value={"memories": "- Loves butterflies"},
+    )
+    mocker.patch(
+        "backend.routes.call.synthesize_voice_stream",
+        return_value=iter([b"audio-data"]),
+    )
+    mocker.patch("backend.routes.call.extract_memories_from_transcript")
+
+    # 1. Start call
+    start_res = client.get("/call/start?child_id=child-1&princess=elsa")
+    assert start_res.status_code == 200
+    session_id = start_res.json()["session_id"]
+    voice_id = start_res.json()["persona"]["voice_id"]
+
+    # 2. TTS request
+    tts_res = client.post("/call/tts", json={
+        "text": "Hello Lily!",
+        "voice_id": voice_id,
+    })
+    assert tts_res.status_code == 200
+    assert tts_res.content == b"audio-data"
+
+    # 3. End call
+    end_res = client.post("/call/end", json={
+        "session_id": session_id,
+        "child_id": "child-1",
+        "princess": "elsa",
+        "duration_seconds": 180,
+        "transcript": [
+            {"role": "princess", "text": "Hello Lily!"},
+            {"role": "child", "text": "Hi Elsa! I saw a butterfly today!"},
+        ],
+    })
+    assert end_res.status_code == 200
+    assert end_res.json()["status"] == "ok"

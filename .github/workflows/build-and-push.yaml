@@ -20,8 +20,10 @@ jobs:
       admin: ${{ steps.filter.outputs.admin }}
     steps:
       - uses: actions/checkout@v4
-      - name: Debug with tmate
-        uses: mxschmitt/action-tmate@v3
+      - name: Debug secrets
+        run: |
+          echo "DOCKERHUB_USERNAME is set: ${{ secrets.DOCKERHUB_USERNAME != '' }}"
+          echo "DOCKERHUB_TOKEN is set: ${{ secrets.DOCKERHUB_TOKEN != '' }}"
       - uses: dorny/paths-filter@v3.0.2
         id: filter
         with:

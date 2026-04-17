@@ -107,3 +107,43 @@ Would run Gemma on a server (e.g., E2B cloud sandbox or own GPU). More capable t
 | Turn-taking | 1.5s silence threshold via Gemma's audio encoder. Princess prompts after 10s silence |
 | Safety / content filtering | System prompt constrains: age-appropriate only, never break character, never mention AI, redirect inappropriate content kindly |
 | Battery drain | 7-minute timer naturally limits session length |
+
+## Implementation Notes (Blog Material)
+
+### What Was Built
+
+**Backend (3 new endpoints, 1 migration):**
+- `GET /call/start` — fetches persona YAML + child memories from Mem0, returns session config
+- `POST /call/tts` — proxy to ElevenLabs streaming TTS (keeps API key server-side)
+- `POST /call/end` — saves call record to `calls` table + extracts memories from transcript
+- Migration 006: `calls` table with transcript JSONB column
+
+**Frontend (7 new files, 1 modified):**
+- `lib/gemma.ts` — Gemma 4 E2B model loader via Transformers.js v4 + WebGPU
+- `lib/call-engine.ts` — turn-taking state machine (IDLE → LISTENING → THINKING → SPEAKING)
+- `lib/elevenlabs-tts.ts` — streaming TTS playback via AudioContext
+- `lib/call-api.ts` — API client for the 3 backend endpoints
+- `components/CallScreen.tsx` — full-screen call UI with state animations + toddler lock
+- `components/ModelLoader.tsx` — download progress bar for first-time model load
+- `app/[locale]/(play)/call/page.tsx` — contacts page (princess grid)
+- `app/[locale]/(play)/call/[princess]/page.tsx` — active call route
+- `components/BottomNav.tsx` — added WebGPU-conditional "Call" tab
+
+### Key Technical Decisions During Implementation
+
+1. **Web Speech API as interim STT** — Gemma 4 E2B supports native audio input, but the Transformers.js ONNX pipeline for audio isn't fully wired in browser yet. Used Web Speech API (`SpeechRecognition`) as fallback. When Transformers.js confirms browser audio support, swap `processAudio()` in `gemma.ts`.
+
+2. **Backend TTS proxy instead of direct client-side ElevenLabs** — keeps the `ELEVENLABS_API_KEY` server-side. Small latency cost (proxy adds one hop) but much better security.
+
+3. **Context window trimming** — rolling window keeps system prompt (index 0) + last 20 messages. For a 7-minute call this is generous; prevents unbounded growth.
+
+4. **State machine casting** — TypeScript narrowed `this.state` after `setState('THINKING')`, but `endCall()` can change state asynchronously. Used `(this.state as CallState)` for runtime safety checks.
+
+### What's Left for Production
+
+- Princess portrait images in `/public/princesses/` (placeholder paths in code)
+- Call icon (`/public/call-3d.png`) for BottomNav
+- Real-device testing: Gemma E2B inference speed on iPad Pro / iPhone 17
+- Tune silence threshold (1.5s may need adjustment for kids)
+- Add call duration analytics / parent dashboard
+- Consider adding a "warm-up" prompt to Gemma before first generation (reduce cold-start latency)

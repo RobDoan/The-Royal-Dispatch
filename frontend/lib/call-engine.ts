@@ -231,16 +231,17 @@ export class CallEngine {
       this.transcript.push({ role: 'princess', text: response });
       this.callbacks.onTranscript({ role: 'princess', text: response });
 
-      if (this.state === 'ENDED' || !this.audioContext || !this.sessionData) return;
+      // State can change asynchronously (e.g. endCall from timer), so re-check
+      if ((this.state as CallState) === 'ENDED' || !this.audioContext || !this.sessionData) return;
       this.setState('SPEAKING');
       await playTtsStream(response, this.sessionData.persona.voice_id, this.audioContext);
 
-      if (this.state !== 'ENDED') {
+      if ((this.state as CallState) !== 'ENDED') {
         this.startListening();
       }
     } catch (err) {
       this.callbacks.onError(err instanceof Error ? err.message : 'Generation failed');
-      if (this.state !== 'ENDED') {
+      if ((this.state as CallState) !== 'ENDED') {
         this.startListening();
       }
     }

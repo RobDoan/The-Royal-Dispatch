@@ -1,5 +1,7 @@
 # Telegram Commands Implementation Plan
 
+> **SUPERSEDED (2026-04-15).** The `/register <name>` + `/add-child` workflow described here was built (commits `eb46be9`, `850cbd6`) and then replaced by the onboarding-flow: stateless `/register` → signed web URL → form submit. The Command Router and `/add-child` branch were removed in commit `44a547b`. See [`../specs/2026-04-15-onboarding-flow-design.md`](../specs/2026-04-15-onboarding-flow-design.md) and [`2026-04-15-onboarding-flow.md`](./2026-04-15-onboarding-flow.md) for the authoritative current design and plan. Kept here for historical context only.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add `/register` and `/add-child` Telegram commands as new branches in the existing n8n workflow.

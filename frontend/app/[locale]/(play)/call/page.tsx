@@ -11,18 +11,23 @@ export default function ContactsPage() {
   const { locale } = useParams<{ locale: string }>();
   const [favorites, setFavorites] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const childId = getStoredChildId();
+  const [webGPU, setWebGPU] = useState(true);
+  const [childId, setChildId] = useState<string | null>(null);
 
   useEffect(() => {
+    setWebGPU(isWebGPUSupported());
+    const id = getStoredChildId();
+    setChildId(id);
+
     async function load() {
       const token = getStoredToken();
-      if (!token || !childId) {
+      if (!token || !id) {
         setLoading(false);
         return;
       }
       const profile = await fetchUserProfile(token);
       if (profile) {
-        const child = profile.children.find((c) => c.id === childId);
+        const child = profile.children.find((c) => c.id === id);
         if (child?.preferences?.favorite_princesses) {
           setFavorites(child.preferences.favorite_princesses);
         }
@@ -30,22 +35,22 @@ export default function ContactsPage() {
       setLoading(false);
     }
     load();
-  }, [childId]);
-
-  if (!isWebGPUSupported()) {
-    return (
-      <div className="flex items-center justify-center min-h-screen p-8">
-        <p className="text-white/60 text-center">
-          Live calls require a newer device. Please try on iPad Pro, iPhone 17, or Chrome desktop.
-        </p>
-      </div>
-    );
-  }
+  }, []);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin w-8 h-8 border-2 border-white/30 border-t-white rounded-full" />
+      </div>
+    );
+  }
+
+  if (!webGPU) {
+    return (
+      <div className="flex items-center justify-center min-h-screen p-8">
+        <p className="text-white/60 text-center">
+          Live calls require a newer device. Please try on iPad Pro, iPhone 17, or Chrome desktop.
+        </p>
       </div>
     );
   }
@@ -67,7 +72,7 @@ export default function ContactsPage() {
           >
             <div className="relative w-20 h-20 rounded-full overflow-hidden">
               <Image
-                src={`/princesses/${p}.png`}
+                src={`/characters/${p}.png`}
                 alt={p}
                 fill
                 className="object-cover"

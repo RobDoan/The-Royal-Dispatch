@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { AudioPlayer } from '@/components/AudioPlayer';
-import { fetchStory, Princess } from '@/lib/api';
+import { requestStory, fetchStory, type Princess, type Language } from '@/lib/api';
 import { PRINCESS_META, PRINCESS_OVERLAY, type PrincessId } from '@/lib/princesses';
 import { useUser } from '@/hooks/useUser';
 type PageState = 'polling' | 'ready' | 'timeout' | 'error';
@@ -27,48 +27,53 @@ export default function PlayPage() {
   const [audioUrl, setAudioUrl] = useState('');
   const [storyText, setStoryText] = useState('');
 
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
   useEffect(() => {
     let stopped = false;
     const startTime = Date.now();
 
-    function stopPolling() {
-      stopped = true;
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    }
-
-    async function poll() {
-      if (stopped) return;
-
-      if (Date.now() - startTime >= POLL_TIMEOUT_MS) {
-        stopPolling();
-        setPageState('timeout');
+    async function start() {
+      // Step 1: POST /story → get audio URL (streaming or cached S3)
+      let url: string;
+      try {
+        url = await requestStory(
+          princessId as Princess,
+          locale as Language,
+          'daily',
+          selectedChild?.id,
+        );
+        if (stopped) return;
+      } catch {
+        if (!stopped) setPageState('error');
         return;
       }
 
-      try {
-        const result = await fetchStory(princessId as Princess, 'daily', selectedChild?.id);
-        if (stopped) return; // interval fired again while we were awaiting
-        stopPolling();
-        setAudioUrl(result.audioUrl);
-        setStoryText(result.storyText);
-        setPageState('ready');
-      } catch (err: unknown) {
-        if (err instanceof Error && err.message === 'STORY_ERROR') {
-          stopPolling();
-          setPageState('error');
+      // Step 2: Set audio URL immediately — the <audio> element will
+      // fetch the streaming endpoint, triggering the LLM + ElevenLabs
+      // pipeline. Audio plays as chunks arrive.
+      setAudioUrl(url);
+      setPageState('ready');
+
+      // Step 3: Poll for story text (saved to DB by _finalize after stream)
+      while (!stopped && Date.now() - startTime < POLL_TIMEOUT_MS) {
+        try {
+          const result = await fetchStory(
+            princessId as Princess,
+            'daily',
+            selectedChild?.id,
+          );
+          if (stopped) return;
+          setStoryText(result.storyText);
+          return;
+        } catch {
+          // Not in DB yet — keep polling
         }
-        // STORY_NOT_FOUND → keep polling
+        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
       }
     }
 
-    // Fire immediately, then every 3 seconds
-    poll();
-    intervalRef.current = setInterval(poll, POLL_INTERVAL_MS);
-
-    return stopPolling;
-  }, [princessId, selectedChild]);
+    start();
+    return () => { stopped = true; };
+  }, [princessId, selectedChild, locale]);
 
   if (pageState === 'ready') {
     return (

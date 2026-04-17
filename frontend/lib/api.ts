@@ -1,7 +1,4 @@
-const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
-const INTERNAL_API_URL = process.env.INTERNAL_API_URL ?? NEXT_PUBLIC_API_URL;
-
-const API_URL = typeof window === 'undefined' ? INTERNAL_API_URL : NEXT_PUBLIC_API_URL;
+const API_URL = typeof window === 'undefined' ? 'http://localhost:3000/api' : '/api';
 
 export type Princess = 'elsa' | 'belle' | 'cinderella' | 'ariel' | 'rapunzel' | 'moana' | 'raya' | 'mirabel' | 'chase' | 'marshall' | 'skye' | 'rubble';
 export type Language = 'en' | 'vi';
@@ -12,15 +9,25 @@ export async function requestStory(
   language: Language,
   storyType: StoryType = 'daily',
   childId?: string | null,
-): Promise<void> {
+): Promise<string> {
   const body: Record<string, string> = { princess, language, story_type: storyType };
   if (childId) body.child_id = childId;
-  await fetch(`${API_URL}/story`, {
+  const res = await fetch(`${API_URL}/story`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(90_000),
   });
+  const data = await res.json();
+  const url: string = data.audio_url;
+  // Backend returns full URL for streaming (http://backend/story/stream?...)
+  // Convert to frontend proxy path (/api/story/stream?...)
+  const streamIdx = url.indexOf('/story/stream');
+  if (streamIdx !== -1) {
+    return `/api${url.substring(streamIdx)}`;
+  }
+  // Cached S3 URL — use as-is
+  return url;
 }
 
 export async function fetchStory(

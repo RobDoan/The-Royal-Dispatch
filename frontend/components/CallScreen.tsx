@@ -102,7 +102,7 @@ export function CallScreen({ princess, childId, onCallEnd }: Props) {
       {/* Princess portrait */}
       <div className={`relative w-48 h-48 rounded-full overflow-hidden mt-12 transition-all duration-500 ${animationClass}`}>
         <Image
-          src={`/princesses/${princess}.png`}
+          src={`/characters/${princess}.png`}
           alt={princess}
           fill
           className="object-cover"

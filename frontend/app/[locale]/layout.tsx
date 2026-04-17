@@ -15,15 +15,11 @@ export default async function LocaleLayout({
   if (!routing.locales.includes(locale as 'en' | 'vi')) notFound();
   const messages = await getMessages();
   return (
-    <html lang={locale}>
-      <body className="min-h-screen">
-        <NextIntlClientProvider messages={messages}>
-          <ParticlesBackground />
-          <div className="relative z-10">
-            {children}
-          </div>
-        </NextIntlClientProvider>
-      </body>
-    </html>
+    <NextIntlClientProvider messages={messages}>
+      <ParticlesBackground />
+      <div className="relative z-10">
+        {children}
+      </div>
+    </NextIntlClientProvider>
   );
 }

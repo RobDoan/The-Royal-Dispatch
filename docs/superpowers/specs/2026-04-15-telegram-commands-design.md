@@ -1,5 +1,7 @@
 # Telegram Commands: /register and /add-child
 
+> **SUPERSEDED (2026-04-15).** This design — parameterized `/register <name>` + separate `/add-child` command — was replaced before implementation by the onboarding-flow design, which uses a stateless `/register` command that returns a signed web onboarding URL. See [`2026-04-15-onboarding-flow-design.md`](./2026-04-15-onboarding-flow-design.md) for the authoritative current design. Kept here for historical context only.
+
 ## Overview
 
 Add two Telegram bot commands implemented as n8n workflow branches. These let parents self-register and add children with character preferences, without needing the admin UI.

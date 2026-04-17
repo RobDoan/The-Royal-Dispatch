@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const API_URL = 'http://localhost:8000';
+const API_URL = '/api';
 
 beforeEach(() => {
   vi.resetAllMocks();

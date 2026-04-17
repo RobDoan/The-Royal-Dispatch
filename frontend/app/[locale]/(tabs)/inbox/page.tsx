@@ -3,7 +3,6 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { requestStory } from '@/lib/api';
 import { PRINCESS_META, type PrincessId } from '@/lib/princesses';
 import { ChevronRight } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
@@ -24,8 +23,7 @@ export default function InboxPage() {
 
   if (loading || needsChildPick) return null;
 
-  async function handleTap(princessId: PrincessId) {
-    requestStory(princessId, locale as 'en' | 'vi', 'daily', selectedChild?.id);
+  function handleTap(princessId: PrincessId) {
     router.push(`/${locale}/play/${princessId}`);
   }
 

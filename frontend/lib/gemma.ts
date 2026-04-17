@@ -5,6 +5,7 @@ export interface GemmaMessage {
   content: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Transformers.js pipeline type varies by task
 let pipeline: any = null;
 let loadingPromise: Promise<void> | null = null;
 

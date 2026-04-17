@@ -17,9 +17,14 @@ export function BottomNav({ locale }: Props) {
     }
   };
 
+  const supportsWebGPU = typeof navigator !== 'undefined' && 'gpu' in navigator;
+
   const tabs = [
     { href: `/${locale}/inbox`, label: 'Inbox', iconSrc: '/inbox-3d.png' },
     { href: `/${locale}/story`, label: 'Story', iconSrc: '/story-3d.png' },
+    ...(supportsWebGPU
+      ? [{ href: `/${locale}/call`, label: 'Call', iconSrc: '/call-3d.png' }]
+      : []),
   ];
 
   return (

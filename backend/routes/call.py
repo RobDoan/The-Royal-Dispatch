@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from backend.db.client import get_conn
 from backend.nodes.fetch_memories import fetch_memories
-from backend.nodes.load_persona import load_persona, PERSONAS_DIR
+from backend.nodes.load_persona import load_persona
 from backend.nodes.synthesize_voice import synthesize_voice_stream
 from backend.utils.mem0_client import get_memory
 

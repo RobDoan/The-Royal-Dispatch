@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:royal_dispatch/models/princess.dart';
+import 'package:royal_dispatch/providers/family_provider.dart';
 import 'package:royal_dispatch/widgets/princess_card.dart';
 
 class StoryRequestScreen extends ConsumerWidget {
@@ -9,7 +9,7 @@ class StoryRequestScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final allIds = princessMeta.keys.toList();
+    final ids = ref.watch(activePrincessIdsProvider);
 
     return GridView.builder(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
@@ -18,9 +18,9 @@ class StoryRequestScreen extends ConsumerWidget {
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
-      itemCount: allIds.length,
+      itemCount: ids.length,
       itemBuilder: (context, index) {
-        final id = allIds[index];
+        final id = ids[index];
         return PrincessCard(
           princessId: id,
           isPoster: true,

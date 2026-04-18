@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
@@ -11,12 +10,6 @@ interface Props {
 
 export function BottomNav({ locale }: Props) {
   const pathname = usePathname();
-  const [supportsWebGPU, setSupportsWebGPU] = useState(false);
-
-  useEffect(() => {
-    setSupportsWebGPU('gpu' in navigator);
-  }, []);
-
   const handleInteraction = () => {
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
       navigator.vibrate(50);
@@ -26,9 +19,6 @@ export function BottomNav({ locale }: Props) {
   const tabs = [
     { href: `/${locale}/inbox`, label: 'Inbox', iconSrc: '/inbox-3d.png' },
     { href: `/${locale}/story`, label: 'Story', iconSrc: '/story-3d.png' },
-    ...(supportsWebGPU
-      ? [{ href: `/${locale}/call`, label: 'Call', iconSrc: '/call-3d.png' }]
-      : []),
   ];
 
   return (

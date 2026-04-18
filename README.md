@@ -22,9 +22,10 @@ Princess voice plays with ambient animation
 
 | Layer | Technology |
 |---|---|
-| Frontend | Next.js (App Router) + TypeScript + Tailwind CSS |
+| Frontend (Web) | Next.js (App Router) + TypeScript + Tailwind CSS |
+| Frontend (Mobile) | Flutter + Riverpod + go_router (iOS & Android) |
 | Admin UI | Next.js + shadcn/ui (user & child management) |
-| i18n | next-intl (English / Tiếng Việt) |
+| i18n | next-intl (web), flutter_localizations (mobile) — English / Tiếng Việt |
 | Orchestration | n8n (Telegram webhook + Whisper transcription) |
 | Backend | FastAPI + LangGraph |
 | LLM | Claude (Haiku for classification/detection, Sonnet for story generation) |
@@ -39,6 +40,7 @@ Princess voice plays with ambient animation
 
 - Python 3.11+
 - Node.js 18+
+- Flutter 3.x (for mobile app development)
 - Docker & Docker Compose
 - An [Anthropic](https://console.anthropic.com) API key
 - An [ElevenLabs](https://elevenlabs.io) API key
@@ -103,6 +105,19 @@ npm install
 npm run dev   # http://localhost:3001
 ```
 
+### Mobile App (Flutter)
+
+```bash
+cd mobile
+flutter pub get
+flutter run              # launch on connected device/emulator
+flutter test             # all tests
+flutter test test/models/ # single test directory
+flutter analyze          # static analysis
+```
+
+Requires a running backend at `http://localhost:8000`. For Android emulator, the app uses `http://10.0.2.2:8000/api` automatically. Configure the base URL in `mobile/.env`.
+
 ### Running Tests
 
 ```bash
@@ -114,6 +129,9 @@ cd frontend && npx vitest run
 
 # Admin
 cd admin && npx vitest run
+
+# Mobile
+cd mobile && flutter test
 ```
 
 ---
@@ -157,7 +175,7 @@ If a parent has only one child, the brief is automatically assigned to that chil
 | `GET/PUT` | `/admin/users/{id}/preferences` | Get/update user preferences |
 | `GET` | `/admin/personas` | List available princess personas |
 
-Valid princess values: `elsa`, `belle`, `cinderella`, `ariel`
+Valid princess values: `elsa`, `belle`, `cinderella`, `ariel`, `rapunzel`, `moana`, `raya`, `mirabel`, `chase`, `marshall`, `skye`, `rubble`
 
 Valid language values: `en`, `vi`
 
@@ -204,12 +222,21 @@ Optional (for memory features): `QDRANT_URL`, `OPENAI_API_KEY`
 
 ---
 
-## Install as iPad PWA
+## Install
+
+### iPad PWA (Web)
 
 1. Deploy or make the frontend accessible on your local network
 2. On the iPad, open **Safari** and navigate to the frontend URL
 3. Tap **Share** → **Add to Home Screen**
 4. The app opens in fullscreen standalone mode
+
+### Mobile App (Flutter)
+
+1. Build the app: `cd mobile && flutter build apk` (Android) or `flutter build ios` (iOS)
+2. Install on the child's device
+3. Enter the family token (parent gets this from Telegram) or open a `royaldispatch://pair?token=...` deep link
+4. The child picks their name on each launch and taps a princess to hear their letter
 
 ---
 
@@ -241,7 +268,15 @@ the-royal-dispatch/
 │   │   ├── client.py            # PostgreSQL connection
 │   │   └── migrations/          # Versioned SQL migrations
 │   └── tests/
-├── frontend/                    # Next.js PWA (child-facing)
+├── frontend/                    # Next.js PWA (child-facing web app)
+├── mobile/                      # Flutter mobile app (iOS & Android)
+│   ├── lib/
+│   │   ├── models/              # Data models (princess, user, story)
+│   │   ├── providers/           # Riverpod state (auth, family, story, audio)
+│   │   ├── services/            # API client, SSE parser, audio handler
+│   │   ├── screens/             # 5 screens (pairing, child picker, inbox, story, playback)
+│   │   └── widgets/             # Glass card, princess card, particles, etc.
+│   └── assets/                  # Character images, icons
 ├── admin/                       # Next.js admin UI (parent/child management)
 ├── n8n/
 │   └── telegram-brief.json      # n8n workflow export
@@ -259,14 +294,22 @@ K8s manifests are in `k8s/` for deploying to a k3s cluster with Traefik ingress,
 
 ---
 
-## Princesses
+## Characters
 
-| Princess | Kingdom | Color |
+| Character | Origin | Color |
 |---|---|---|
-| Elsa | Kingdom of Arendelle | Powder blue |
+| Queen Elsa | Kingdom of Arendelle | Powder blue |
 | Belle | The Enchanted Castle | Warm gold |
 | Cinderella | The Royal Palace | Soft lilac |
 | Ariel | Under the Sea | Mint teal |
+| Princess Rapunzel | Kingdom of Corona | Sunny yellow |
+| Moana | Motunui Island | Ocean cyan |
+| Raya | Kumandra | Royal purple |
+| Mirabel | The Encanto | Emerald green |
+| Chase | Adventure Bay (Police Pup) | Blue |
+| Marshall | Adventure Bay (Fire Pup) | Red |
+| Skye | Adventure Bay (Aviation Pup) | Pink |
+| Rubble | Adventure Bay (Construction Pup) | Amber |
 
 Each princess has a YAML persona config in `backend/personas/` that controls her voice ID, tone style, audio tags, signature phrase, metaphor, and fallback letter (en/vi).
 

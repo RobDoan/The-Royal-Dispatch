@@ -1,0 +1,39 @@
+name: royal_dispatch
+description: The Royal Dispatch — personalized princess letters for children
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  flutter_riverpod: ^2.6.1
+  go_router: ^14.8.1
+  dio: ^5.7.0
+  just_audio: ^0.9.42
+  audio_service: ^0.18.15
+  google_fonts: ^6.2.1
+  flutter_secure_storage: ^9.2.4
+  shared_preferences: ^2.3.4
+  flutter_dotenv: ^5.2.1
+  intl: ^0.20.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  mockito: ^5.4.5
+  build_runner: ^2.4.14
+  mocktail: ^1.0.4
+
+flutter:
+  generate: true
+  uses-material-design: true
+  assets:
+    - assets/characters/
+    - assets/icons/
+    - .env

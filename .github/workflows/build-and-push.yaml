@@ -11,6 +11,7 @@ on:
 
 env:
   REGISTRY: docker.io
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   detect-changes:
@@ -21,11 +22,7 @@ jobs:
       admin: ${{ steps.filter.outputs.admin }}
     steps:
       - uses: actions/checkout@v4
-      - name: Debug secrets
-        run: |
-          echo "DOCKERHUB_USERNAME is set: ${{ secrets.DOCKERHUB_USERNAME != '' }}"
-          echo "DOCKERHUB_TOKEN is set: ${{ secrets.DOCKERHUB_TOKEN != '' }}"
-      - uses: dorny/paths-filter@v3.0.2
+      - uses: dorny/paths-filter@v3
         id: filter
         with:
           filters: |

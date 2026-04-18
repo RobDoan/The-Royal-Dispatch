@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 Dio createApiClient({String? token}) {
-  final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000/api';
+  final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000';
   final dio = Dio(BaseOptions(
     baseUrl: baseUrl,
     connectTimeout: const Duration(seconds: 10),

@@ -35,24 +35,24 @@ uv run pytest tests/test_nodes/test_generate_story.py::test_generate_story_retur
 
 ```bash
 cd frontend
-npm install
+pnpm install
 
-npm run dev        # development server on :3000
-npm run build      # production build
-npm run lint       # ESLint
-npx vitest run     # all frontend tests
-npx vitest run tests/AudioPlayer.test.tsx  # single test file
+pnpm dev           # development server on :3000
+pnpm build         # production build
+pnpm lint          # ESLint
+pnpm vitest run    # all frontend tests
+pnpm vitest run tests/AudioPlayer.test.tsx  # single test file
 ```
 
 ### Admin UI (Next.js)
 
 ```bash
 cd admin
-npm install
+pnpm install
 
-npm run dev        # development server on :3001
-npm run build      # production build
-npx vitest run     # all admin tests
+pnpm dev           # development server on :3001
+pnpm build         # production build
+pnpm vitest run    # all admin tests
 ```
 
 ### Mobile App (Flutter)

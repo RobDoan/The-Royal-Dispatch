@@ -55,6 +55,20 @@ npm run build      # production build
 npx vitest run     # all admin tests
 ```
 
+### Mobile App (Flutter)
+
+```bash
+cd mobile
+flutter pub get
+
+flutter run              # launch on connected device/emulator
+flutter test             # all tests
+flutter test test/models/ # single test directory
+flutter analyze          # static analysis
+flutter build apk        # Android release build
+flutter build ios        # iOS release build
+```
+
 ### Docker (full stack)
 
 ```bash
@@ -113,12 +127,25 @@ Each princess is a YAML file in `backend/personas/` with: `voice_id`, `tone_styl
 
 The "logical day" resets at 3 AM in the user's timezone (not midnight). `get_logical_date_iso()` in `backend/utils/time_utils.py` handles this. Always pass `timezone` from client; defaults to `"America/Los_Angeles"`.
 
-### Frontend
+### Frontend (Web)
 
 - Next.js App Router with `[locale]` segment for i18n (next-intl, en/vi)
 - `/[locale]/onboarding?token=...` — parent onboarding form (name + children with favorite princesses). Token is persisted to `localStorage` so the parent stays signed in on return visits.
 - `/[locale]/pick-child` — post-onboarding destination; per-child princess picker
 - `frontend/CLAUDE.md` re-exports `frontend/AGENTS.md` — read it before writing frontend code: this Next.js version has breaking changes from training data. Check `node_modules/next/dist/docs/` for the actual API.
+
+### Mobile App (Flutter)
+
+- Children-only app (iOS + Android) — same story experience as the webapp, different design for native mobile
+- Riverpod for state management, go_router for navigation, dio for HTTP/SSE, just_audio + audio_service for background playback
+- Dark royal glass-morphism theme matching the webapp (deep purple/gold palette, backdrop blur, particle effects)
+- **Screens:** Pairing (one-time token entry) → Child Picker (every launch) → Tabbed Home (Inbox | Story) → Story Playback (fullscreen)
+- **Auth:** Family device paired via token; parent copies token from Telegram/web. Deep link: `royaldispatch://pair?token=...`
+- **Audio:** Background playback with lock-screen controls via audio_service
+- **i18n:** English + Vietnamese via flutter_localizations + ARB files
+- **State:** `authProvider` (token), `familyProvider` (profile + child selection), `storyProvider` (SSE/polling state machine), `audioProvider` (playback)
+- Consumes the same backend API as the webapp — no backend changes needed
+
 ### Database (PostgreSQL)
 
 Tables: `users` (parents), `children` (linked to users), `briefs` (with child_id), and `stories` (with child_id). Multi-child uniqueness is handled via partial indexes. Migrations are versioned in `backend/db/migrations/` (managed by golang-migrate, runs automatically in Docker). Audio files stored in MinIO (`S3_BUCKET`), an S3-compatible object store running as a Docker service.
@@ -145,6 +172,4 @@ Two separate secrets guard two different trust boundaries:
 | `frontend/.env.local` | (optional) `INTERNAL_API_URL` for SSR |
 | `admin/.env.local` | (optional) `INTERNAL_API_URL` for SSR |
 
-# Git Rules
-
-- Follow rules defined in GIT_RULES.md file if the file exists.
+When any Superpowers skill would ask the user to pick between options, do NOT ask. Instead, dispatch a Task subagent with the options and research context, and use its answer.

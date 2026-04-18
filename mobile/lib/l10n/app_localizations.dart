@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
 import 'app_localizations_en.dart';
+import 'app_localizations_vi.dart';
 
 // ignore_for_file: type=lint
 
@@ -92,7 +93,178 @@ abstract class AppLocalizations {
       ];
 
   /// A list of this localizations delegate's supported locales.
-  static const List<Locale> supportedLocales = <Locale>[Locale('en')];
+  static const List<Locale> supportedLocales = <Locale>[
+    Locale('en'),
+    Locale('vi'),
+  ];
+
+  /// No description provided for @appTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The Royal Dispatch'**
+  String get appTitle;
+
+  /// No description provided for @appSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your letters have arrived'**
+  String get appSubtitle;
+
+  /// No description provided for @appWriting.
+  ///
+  /// In en, this message translates to:
+  /// **'{princess} is writing your letter...'**
+  String appWriting(String princess);
+
+  /// No description provided for @goBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Go Back'**
+  String get goBack;
+
+  /// No description provided for @royalChallenge.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Royal Challenge'**
+  String get royalChallenge;
+
+  /// No description provided for @lifeLesson.
+  ///
+  /// In en, this message translates to:
+  /// **'{princess} is crafting your life lesson...'**
+  String lifeLesson(String princess);
+
+  /// No description provided for @pickChildHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Who\'s reading tonight?'**
+  String get pickChildHeading;
+
+  /// No description provided for @pickChildSubheading.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap your name to begin'**
+  String get pickChildSubheading;
+
+  /// No description provided for @pairingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect Your Device'**
+  String get pairingTitle;
+
+  /// No description provided for @pairingHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your family code'**
+  String get pairingHint;
+
+  /// No description provided for @pairingConnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect'**
+  String get pairingConnect;
+
+  /// No description provided for @pairingError.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid code. Please try again.'**
+  String get pairingError;
+
+  /// No description provided for @inboxTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Inbox'**
+  String get inboxTitle;
+
+  /// No description provided for @storyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Story'**
+  String get storyTitle;
+
+  /// No description provided for @storyError.
+  ///
+  /// In en, this message translates to:
+  /// **'{princess}\'s letter is on its way — try again in a moment'**
+  String storyError(String princess);
+
+  /// No description provided for @holdToExit.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold to Exit'**
+  String get holdToExit;
+
+  /// No description provided for @originElsa.
+  ///
+  /// In en, this message translates to:
+  /// **'Kingdom of Arendelle'**
+  String get originElsa;
+
+  /// No description provided for @originBelle.
+  ///
+  /// In en, this message translates to:
+  /// **'The Enchanted Castle'**
+  String get originBelle;
+
+  /// No description provided for @originCinderella.
+  ///
+  /// In en, this message translates to:
+  /// **'The Royal Palace'**
+  String get originCinderella;
+
+  /// No description provided for @originAriel.
+  ///
+  /// In en, this message translates to:
+  /// **'Under the Sea'**
+  String get originAriel;
+
+  /// No description provided for @originRapunzel.
+  ///
+  /// In en, this message translates to:
+  /// **'Kingdom of Corona'**
+  String get originRapunzel;
+
+  /// No description provided for @originMoana.
+  ///
+  /// In en, this message translates to:
+  /// **'Motunui Island'**
+  String get originMoana;
+
+  /// No description provided for @originRaya.
+  ///
+  /// In en, this message translates to:
+  /// **'Kumandra'**
+  String get originRaya;
+
+  /// No description provided for @originMirabel.
+  ///
+  /// In en, this message translates to:
+  /// **'The Encanto'**
+  String get originMirabel;
+
+  /// No description provided for @originChase.
+  ///
+  /// In en, this message translates to:
+  /// **'Adventure Bay (Police Pup)'**
+  String get originChase;
+
+  /// No description provided for @originMarshall.
+  ///
+  /// In en, this message translates to:
+  /// **'Adventure Bay (Fire Pup)'**
+  String get originMarshall;
+
+  /// No description provided for @originSkye.
+  ///
+  /// In en, this message translates to:
+  /// **'Adventure Bay (Aviation Pup)'**
+  String get originSkye;
+
+  /// No description provided for @originRubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Adventure Bay (Construction Pup)'**
+  String get originRubble;
 }
 
 class _AppLocalizationsDelegate
@@ -106,7 +278,7 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['en'].contains(locale.languageCode);
+      <String>['en', 'vi'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -117,6 +289,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
   switch (locale.languageCode) {
     case 'en':
       return AppLocalizationsEn();
+    case 'vi':
+      return AppLocalizationsVi();
   }
 
   throw FlutterError(

@@ -1,4 +1,4 @@
-FROM node:20-alpine AS deps
+FROM node:24-alpine AS deps
 WORKDIR /app
 
 RUN corepack enable pnpm
@@ -7,7 +7,8 @@ COPY package.json pnpm-lock.yaml ./
 
 RUN pnpm i --frozen-lockfile
 
-FROM node:20-alpine AS builder
+# --- Dev stage: has source + full node_modules ---
+FROM node:24-alpine AS dev
 WORKDIR /app
 
 RUN corepack enable pnpm
@@ -17,22 +18,31 @@ COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
+EXPOSE 3000
+
+CMD ["pnpm", "run", "dev"]
+
+# --- Builder: produces standalone output ---
+FROM dev AS builder
+
 RUN pnpm run build
 
-FROM node:20-alpine AS runner
+# --- Prod stage: minimal standalone server ---
+FROM node:24-alpine AS prod
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 
-# Copy everything necessary to run the standard Next server
-COPY --from=builder /app/package.json ./package.json
+RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
+
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/next.config.ts ./next.config.ts
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
 
 EXPOSE 3000
 
-CMD ["node", "node_modules/.bin/next", "start"]
+CMD ["node", "server.js"]

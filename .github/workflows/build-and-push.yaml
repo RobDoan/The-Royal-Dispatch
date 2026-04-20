@@ -53,7 +53,9 @@ jobs:
 
       - name: Extract metadata
         id: meta
-        run: echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          echo "ts=$(date +%s)" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -62,7 +64,7 @@ jobs:
           file: backend/Dockerfile
           push: true
           tags: |
-            quydoan/royal-dispatch-backend:${{ steps.meta.outputs.sha }}
+            quydoan/royal-dispatch-backend:${{ steps.meta.outputs.sha }}-${{ steps.meta.outputs.ts }}
             quydoan/royal-dispatch-backend:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -87,16 +89,19 @@ jobs:
 
       - name: Extract metadata
         id: meta
-        run: echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          echo "ts=$(date +%s)" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: ./frontend
           file: frontend/Dockerfile
+          target: prod
           push: true
           tags: |
-            quydoan/royal-dispatch-frontend:${{ steps.meta.outputs.sha }}
+            quydoan/royal-dispatch-frontend:${{ steps.meta.outputs.sha }}-${{ steps.meta.outputs.ts }}
             quydoan/royal-dispatch-frontend:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -121,16 +126,65 @@ jobs:
 
       - name: Extract metadata
         id: meta
-        run: echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          echo "ts=$(date +%s)" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: ./admin
           file: admin/Dockerfile
+          target: prod
           push: true
           tags: |
-            quydoan/royal-dispatch-admin:${{ steps.meta.outputs.sha }}
+            quydoan/royal-dispatch-admin:${{ steps.meta.outputs.sha }}-${{ steps.meta.outputs.ts }}
             quydoan/royal-dispatch-admin:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  release:
+    needs: [build-backend, build-frontend, build-admin]
+    if: always() && contains(needs.*.result, 'success')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate release tag
+        id: tag
+        run: |
+          SHA=${GITHUB_SHA::7}
+          TS=$(date +%s)
+          TAG="${SHA}-${TS}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Build release notes
+        id: notes
+        run: |
+          {
+            echo "## Docker Images"
+            echo ""
+            if [ "${{ needs.build-backend.result }}" = "success" ]; then
+              echo "- \`quydoan/royal-dispatch-backend:${{ steps.tag.outputs.tag }}\`"
+            fi
+            if [ "${{ needs.build-frontend.result }}" = "success" ]; then
+              echo "- \`quydoan/royal-dispatch-frontend:${{ steps.tag.outputs.tag }}\`"
+            fi
+            if [ "${{ needs.build-admin.result }}" = "success" ]; then
+              echo "- \`quydoan/royal-dispatch-admin:${{ steps.tag.outputs.tag }}\`"
+            fi
+            echo ""
+            echo "## Recent Commits"
+            echo ""
+            git log --oneline -5
+          } > release_notes.md
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v${{ steps.tag.outputs.tag }}" \
+            --title "v${{ steps.tag.outputs.tag }}" \
+            --notes-file release_notes.md

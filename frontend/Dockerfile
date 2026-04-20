@@ -7,7 +7,8 @@ COPY package.json pnpm-lock.yaml ./
 
 RUN pnpm i --frozen-lockfile
 
-FROM node:24-alpine AS builder
+# --- Dev stage: has source + full node_modules ---
+FROM node:24-alpine AS dev
 WORKDIR /app
 
 RUN corepack enable pnpm
@@ -17,12 +18,17 @@ COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
-ARG INTERNAL_API_URL=http://backend:8000
-ENV INTERNAL_API_URL=${INTERNAL_API_URL}
+EXPOSE 3000
+
+CMD ["pnpm", "run", "dev"]
+
+# --- Builder: produces standalone output ---
+FROM dev AS builder
 
 RUN pnpm run build
 
-FROM node:24-alpine AS runner
+# --- Prod stage: minimal standalone server ---
+FROM node:24-alpine AS prod
 WORKDIR /app
 
 ENV NODE_ENV=production

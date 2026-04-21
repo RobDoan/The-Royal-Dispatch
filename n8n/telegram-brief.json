@@ -67,7 +67,7 @@
     },
     {
       "parameters": {
-        "url": "={{ $env.BACKEND_URL }}/user/by-chat-id?chat_id={{ $json.message.chat.id }}",
+        "url": "={{ $env.THE_ROYAL_DISPATCH_API_URL }}/user/by-chat-id?chat_id={{ $json.message.chat.id }}",
         "options": {
           "response": {
             "response": {
@@ -116,7 +116,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.BACKEND_URL }}/brief",
+        "url": "={{ $env.THE_ROYAL_DISPATCH_API_URL }}/brief",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ text: $('Telegram Trigger').first().json.message.text, user_id: $json.body.user_id}) }}",
@@ -134,7 +134,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.BACKEND_URL }}/user/register-link",
+        "url": "={{ $env.THE_ROYAL_DISPATCH_API_URL }}/user/register-link",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [

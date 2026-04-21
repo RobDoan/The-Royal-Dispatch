@@ -33,8 +33,8 @@ jobs:
               - 'admin/**'
 
   build-backend:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.backend == 'true'
+    # needs: detect-changes
+    # if: needs.detect-changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     outputs:
       image-tag: ${{ steps.meta.outputs.sha }}

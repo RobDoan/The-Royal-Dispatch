@@ -25,6 +25,7 @@ dependencies:
   permission_handler: ^11.3.0
   record: ^5.1.0
   http: ^1.2.0
+  mp_audio_stream: ^0.2.2
 
 dev_dependencies:
   flutter_test:

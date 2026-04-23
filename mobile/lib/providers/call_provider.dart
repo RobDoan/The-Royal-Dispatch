@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:royal_dispatch/services/call_api.dart';
 import 'package:royal_dispatch/services/elevenlabs_convai_client.dart';
+import 'package:royal_dispatch/services/pcm_audio_sink.dart';
 import 'package:royal_dispatch/providers/auth_provider.dart';
 
 enum CallStatus { idle, requesting, connecting, inCall, ending, ended, error }
@@ -47,6 +48,7 @@ class CallNotifier extends StateNotifier<CallState> {
 
   final CallApi _api;
   ElevenLabsConvaiClient? _client;
+  PcmAudioSink? _audioSink;
 
   Future<void> startCall({
     required String childId,
@@ -64,6 +66,8 @@ class CallNotifier extends StateNotifier<CallState> {
         princess: princess,
         maxDurationSeconds: result.maxDurationSeconds,
       );
+      _audioSink = PcmAudioSink();
+      await _audioSink!.start();
       _client = ElevenLabsConvaiClient(
         signedUrl: result.signedUrl,
         onEvent: (event, {detail}) {
@@ -73,7 +77,7 @@ class CallNotifier extends StateNotifier<CallState> {
           }
           if (event == ConvaiConnectionEvent.error) markError(CallErrorReason.network);
         },
-        onAgentAudio: (_) {/* audio playback is out-of-scope for v1 wiring */},
+        onAgentAudio: (bytes) => _audioSink?.push(bytes),
       );
       await _client!.connect();
     } on CallStartError catch (e) {
@@ -92,6 +96,8 @@ class CallNotifier extends StateNotifier<CallState> {
     markEnding();
     await _client?.close();
     _client = null;
+    await _audioSink?.stop();
+    _audioSink = null;
     markEnded();
   }
 

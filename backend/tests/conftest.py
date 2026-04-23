@@ -1,5 +1,6 @@
 import os
 import pytest
+from fastapi.testclient import TestClient
 from unittest.mock import MagicMock
 
 
@@ -8,6 +9,12 @@ def _auth_secret_default():
     os.environ.setdefault("AUTH_SECRET", "test-secret-hex")
     os.environ.setdefault("N8N_SHARED_SECRET", "test-n8n-secret")
     os.environ.setdefault("FRONTEND_URL", "http://localhost:3000")
+
+
+@pytest.fixture
+def client():
+    from backend.main import app
+    return TestClient(app)
 
 
 @pytest.fixture

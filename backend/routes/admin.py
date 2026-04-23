@@ -271,6 +271,64 @@ def admin_update_preferences(child_id: str, req: UpdatePreferencesRequest):
     return {"child_id": str(row[0]), "preferences": row[1]}
 
 
+# ── Calls ────────────────────────────────────────────────────────────────────
+
+class CallListItem(BaseModel):
+    id: str
+    princess: str
+    locale: str
+    state: str
+    ended_reason: str | None
+    started_at: str
+    ended_at: str | None
+    duration_seconds: int | None
+    transcript: list[dict] | None
+
+
+class CallListResponse(BaseModel):
+    items: list[CallListItem]
+    total: int
+
+
+@router.get("/children/{child_id}/calls", response_model=CallListResponse)
+def list_calls_for_child(child_id: str, limit: int = 50, offset: int = 0):
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, princess, locale, state, ended_reason,
+                       started_at, ended_at, duration_seconds, transcript
+                FROM calls
+                WHERE child_id = %s
+                ORDER BY started_at DESC
+                LIMIT %s OFFSET %s
+                """,
+                (child_id, limit, offset),
+            )
+            rows = cur.fetchall()
+            cur.execute("SELECT COUNT(*) FROM calls WHERE child_id = %s", (child_id,))
+            (total,) = cur.fetchone()
+
+    def _to_iso(ts):
+        return ts.isoformat() if hasattr(ts, "isoformat") else ts
+
+    items = [
+        CallListItem(
+            id=str(r[0]),
+            princess=r[1],
+            locale=r[2],
+            state=r[3],
+            ended_reason=r[4],
+            started_at=_to_iso(r[5]),
+            ended_at=_to_iso(r[6]) if r[6] else None,
+            duration_seconds=r[7],
+            transcript=r[8],
+        )
+        for r in rows
+    ]
+    return CallListResponse(items=items, total=total)
+
+
 # ── Personas ─────────────────────────────────────────────────────────────────
 
 @router.get("/personas", response_model=list[PersonaResponse])

@@ -502,7 +502,19 @@ kubectl -n monitoring delete prometheusrule test-alert-remove-me
 
 ## Phase 3 — prometheus-postgres-exporter
 
-Two repos: a DB migration goes in `the-royal-dispatch`; the exporter manifests go in `gitops-rackspace`.
+Two repos: an out-of-band Postgres bootstrap + Vault write; then the exporter manifests go in `gitops-rackspace`.
+
+> **Post-execution corrections.** Two follow-up PRs landed; a future replay should fold them in rather than repeat the detour.
+>
+> - **the-royal-dispatch PR [#8](https://github.com/RobDoan/The-Royal-Dispatch/pull/8)** — The original Part A (Steps 3.1–3.6) put `CREATE USER postgres_exporter` + `GRANT pg_monitor` into an app migration. The migrator role `royal` only has `Create DB` (no `CREATEROLE`, no `SUPERUSER`), so the statement hit permission denied and golang-migrate pinned the DB at `version=7, dirty=true` — backend rollout wedged on the dirty guard. Role DDL does not belong in application migrations anyway. **Part A has been removed. A future replay should skip it entirely and run the CREATE/GRANT statements inside Part B's psql block** (see the consolidated command block below).
+> - **gitops-rackspace PR [#8](https://github.com/RobDoan/gitops-rackspace/pull/8)** — `config.datasource.port` must be quoted (`"5432"`). Chart 7.5.2's DSN helper renders the port via a string formatter; unquoted, YAML parses `5432` as an integer which reaches the template as a Go `float64` and the helper rejects it with `wrong type for value; expected string; got float64`. Step 3.11 has been corrected inline.
+
+### Part A — [SUPERSEDED by Part B]
+
+The original Steps 3.1–3.6 (DB migration `<N>_postgres_exporter_user.up.sql/down.sql`) are retained below for historical reference only. **Skip this part.** The `postgres_exporter` user is now created in Part B as `postgres` superuser via `kubectl exec ... psql`, which is where the password also gets set.
+
+<details>
+<summary>Original Steps 3.1–3.6 (do not execute)</summary>
 
 ### Part A — migration (the-royal-dispatch)
 
@@ -559,34 +571,45 @@ kubectl -n royal-dispatch logs deploy/backend -c migrate --tail=20
 ```
 Expected: final line ends with the new migration number being applied.
 
-### Part B — set postgres_exporter password in Postgres + Vault
+</details>
 
-- [ ] **Step 3.7: Generate and store the password in Vault**
+### Part B — bootstrap postgres_exporter user + password (all out-of-band, as `postgres` superuser)
+
+Single consolidated block. Run all commands in the same shell so `$EXPORTER_PASS` persists.
+
+- [ ] **Step 3.7: Generate password, write to Vault, create user, verify login**
 
 ```bash
+# 1. Generate and store password
 EXPORTER_PASS=$(openssl rand -base64 24 | tr -d '=+/' | cut -c1-32)
 vault kv put secret/postgres/exporter-password password="$EXPORTER_PASS"
-```
-
-Verify:
-```bash
 vault kv get -field=password secret/postgres/exporter-password
-```
+# Expected: the generated password printed back.
 
-- [ ] **Step 3.8: Set the password on the actual Postgres user**
+# 2. Create the role in Postgres as superuser
+POSTGRES_PW=$(kubectl -n postgres get secret postgres-secrets -o jsonpath='{.data.postgres-password}' | base64 -d)
 
-```bash
-kubectl -n postgres exec -it postgres-postgresql-0 -- psql -U postgres -c \
-  "ALTER USER postgres_exporter WITH PASSWORD '$EXPORTER_PASS';"
-```
-Expected: `ALTER ROLE`.
+kubectl -n postgres exec -i postgres-postgresql-0 -- env PGPASSWORD="$POSTGRES_PW" psql -U postgres -d royal_dispatch <<SQL
+CREATE USER postgres_exporter WITH LOGIN PASSWORD '$EXPORTER_PASS';
+GRANT pg_monitor TO postgres_exporter;
+GRANT CONNECT ON DATABASE royal_dispatch TO postgres_exporter;
+SQL
+# Expected: three successive messages: CREATE ROLE, GRANT ROLE, GRANT.
 
-Confirm the exporter user can log in:
-```bash
-kubectl -n postgres exec -it postgres-postgresql-0 -- \
+# 3. Confirm the exporter user can log in
+kubectl -n postgres exec postgres-postgresql-0 -- \
   env PGPASSWORD="$EXPORTER_PASS" psql -h 127.0.0.1 -U postgres_exporter -d royal_dispatch -c "SELECT 1;"
+# Expected: ?column? table with 1.
 ```
-Expected: `?column?` table with `1`.
+
+Why superuser: `CREATE USER` needs `CREATEROLE`, `GRANT pg_monitor` needs admin on that role, and `GRANT CONNECT` needs the DB owner. The stock Bitnami Postgres chart gives `royal` only `Create DB`, so this work has to go through the superuser path — and the `ALTER USER` for password rotation lives in the same place for consistency.
+
+**Rollback** (if you ever need to tear the user down):
+```sql
+REVOKE CONNECT ON DATABASE royal_dispatch FROM postgres_exporter;
+REVOKE pg_monitor FROM postgres_exporter;
+DROP USER IF EXISTS postgres_exporter;
+```
 
 ### Part C — exporter manifests (gitops-rackspace)
 
@@ -645,7 +668,7 @@ spec:
     config:
       datasource:
         host: postgres-postgresql.postgres.svc.cluster.local
-        port: 5432
+        port: "5432"   # must be quoted — chart helper printf's expects string, rejects float64
         user: postgres_exporter
         passwordSecret:
           name: postgres-exporter

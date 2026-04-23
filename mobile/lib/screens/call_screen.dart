@@ -99,7 +99,11 @@ class _CallScreenState extends ConsumerState<CallScreen> {
                   iconSize: 56,
                   tooltip: _muted ? 'Unmute' : 'Mute',
                   icon: Icon(_muted ? Icons.mic_off : Icons.mic, color: Colors.white),
-                  onPressed: () => setState(() => _muted = !_muted),
+                  onPressed: () {
+                    final newMuted = !_muted;
+                    ref.read(callProvider.notifier).setMuted(newMuted);
+                    setState(() => _muted = newMuted);
+                  },
                 ),
                 IconButton(
                   iconSize: 64,

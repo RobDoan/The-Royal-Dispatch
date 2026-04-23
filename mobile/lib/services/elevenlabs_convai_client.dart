@@ -15,6 +15,7 @@ class ElevenLabsConvaiClient {
   WebSocketChannel? _channel;
   final AudioRecorder _recorder = AudioRecorder();
   StreamSubscription<Uint8List>? _micSub;
+  bool _muted = false;
 
   ElevenLabsConvaiClient({
     required this.signedUrl,
@@ -48,7 +49,7 @@ class ElevenLabsConvaiClient {
       numChannels: 1,
     ));
     _micSub = stream.listen((chunk) {
-      if (_channel == null) return;
+      if (_channel == null || _muted) return;
       _channel!.sink.add(jsonEncode({
         "user_audio_chunk": base64Encode(chunk),
       }));
@@ -70,6 +71,10 @@ class ElevenLabsConvaiClient {
     } catch (_) {
       // Ignore malformed frames.
     }
+  }
+
+  void setMuted(bool muted) {
+    _muted = muted;
   }
 
   Future<void> close() async {

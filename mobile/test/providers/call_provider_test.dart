@@ -57,4 +57,13 @@ void main() {
     notifier.reset();
     expect(container.read(callProvider).status, CallStatus.idle);
   });
+
+  test("setMuted is a no-op when no active client", () {
+    final container = _makeContainer();
+    addTearDown(container.dispose);
+
+    // Should not throw even though there's no active ElevenLabsConvaiClient.
+    container.read(callProvider.notifier).setMuted(true);
+    container.read(callProvider.notifier).setMuted(false);
+  });
 }

@@ -92,6 +92,10 @@ class CallNotifier extends StateNotifier<CallState> {
     }
   }
 
+  void setMuted(bool muted) {
+    _client?.setMuted(muted);
+  }
+
   Future<void> endCall() async {
     markEnding();
     await _client?.close();

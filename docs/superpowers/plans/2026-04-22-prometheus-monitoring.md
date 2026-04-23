@@ -770,6 +770,15 @@ Expected: `"1"` (note: JSON-quoted string).
 
 Repo: `gitops-rackspace`. Three new ServiceMonitors plus one patch to enable n8n metrics.
 
+> **Post-execution corrections.** Several defects in the original steps were caught at apply/scrape time; a future replay should fold these in.
+>
+> - **Structure path**: ServiceMonitors are CRs (depend on `ServiceMonitor` CRD installed by `kube-prometheus-stack`), so they belong in `apps/kube-prometheus-stack-config/base/servicemonitors/` — not `apps/kube-prometheus-stack/base/`. Same reasoning as the AlertmanagerConfig split in Phase 2. Steps 4.3–4.6 below reference the wrong path; the **correct** edit is to `apps/kube-prometheus-stack-config/base/kustomization.yaml`.
+> - **Release label**: every ServiceMonitor needs `metadata.labels.release: kube-prometheus-stack` for the Operator's `serviceMonitorSelector` to pick it up. This is the same label used for ingress-nginx (set via Helm values) and postgres-exporter (set via Helm chart values). Absent this label, Prometheus silently ignores the target.
+> - **MinIO selector quirk (gitops PR [#10](https://github.com/RobDoan/gitops-rackspace/pull/10))**: chart 5.4.0 uses non-standard labels. The correct selector is `app: minio` + `monitoring: "true"` — the `monitoring: "true"` label is set only on the main API Service (port 9000), which narrows us away from the admin console Service (port 9001, which serves HTML and would report "unsupported Content-Type"). The port name is `http`, not `minio-api`.
+> - **Qdrant selector quirk (gitops PR [#10](https://github.com/RobDoan/gitops-rackspace/pull/10))**: Qdrant ships a main ClusterIP Service and a headless Service for StatefulSet cluster discovery; both carry `app.kubernetes.io/name=qdrant` and route to the same pod. Scraping both doubles every series. Add a `matchExpressions: [{key: app.kubernetes.io/component, operator: DoesNotExist}]` to exclude the headless (only the headless carries `component=cluster-discovery`).
+>
+> Corrected YAML is inlined in Steps 4.3–4.5 below with explanatory comments.
+
 - [ ] **Step 4.1: Branch**
 
 ```bash
@@ -787,7 +796,7 @@ Under `values.main.extraEnv:` add:
 
 Place it anywhere in the existing `extraEnv` block alongside the other entries.
 
-- [ ] **Step 4.3: Create `apps/kube-prometheus-stack/base/servicemonitors/n8n.yaml`**
+- [ ] **Step 4.3: Create `apps/kube-prometheus-stack-config/base/servicemonitors/n8n.yaml`**
 
 ```yaml
 apiVersion: monitoring.coreos.com/v1
@@ -795,6 +804,8 @@ kind: ServiceMonitor
 metadata:
   name: n8n
   namespace: monitoring
+  labels:
+    release: kube-prometheus-stack   # required for Operator's serviceMonitorSelector
 spec:
   namespaceSelector:
     matchNames: [n8n]
@@ -807,9 +818,7 @@ spec:
       interval: 30s
 ```
 
-Note: the 8gears n8n chart exposes port name `http`. If on verification step 4.9 targets show DOWN, inspect `kubectl -n n8n get svc -o yaml` and update the `port:` name to match.
-
-- [ ] **Step 4.4: Create `apps/kube-prometheus-stack/base/servicemonitors/minio.yaml`**
+- [ ] **Step 4.4: Create `apps/kube-prometheus-stack-config/base/servicemonitors/minio.yaml`**
 
 ```yaml
 apiVersion: monitoring.coreos.com/v1
@@ -817,22 +826,23 @@ kind: ServiceMonitor
 metadata:
   name: minio
   namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
 spec:
   namespaceSelector:
     matchNames: [minio]
   selector:
     matchLabels:
-      app.kubernetes.io/name: minio
+      app: minio                  # chart 5.4.0 uses plain 'app', not app.kubernetes.io/name
+      monitoring: "true"          # narrows to the API Service; console Service lacks this
   endpoints:
-    - port: minio-api
+    - port: http                  # port name on the API Service (not 'minio-api')
       path: /minio/v2/metrics/cluster
       interval: 30s
       scheme: http
 ```
 
-Note: MinIO exposes Prometheus-compatible metrics at `/minio/v2/metrics/cluster` without authentication when the bucket policy is public (we're internal-only; acceptable). If the existing MinIO chart uses a different Service port name, update `port:` to match the name in `kubectl -n minio get svc -o yaml`.
-
-- [ ] **Step 4.5: Create `apps/kube-prometheus-stack/base/servicemonitors/qdrant.yaml`**
+- [ ] **Step 4.5: Create `apps/kube-prometheus-stack-config/base/servicemonitors/qdrant.yaml`**
 
 ```yaml
 apiVersion: monitoring.coreos.com/v1
@@ -840,19 +850,26 @@ kind: ServiceMonitor
 metadata:
   name: qdrant
   namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
 spec:
   namespaceSelector:
     matchNames: [qdrant]
   selector:
     matchLabels:
       app.kubernetes.io/name: qdrant
+    # Exclude the headless Service (cluster-discovery) — it proxies to the same
+    # pod as the main Service, so matching both would double every series.
+    matchExpressions:
+      - key: app.kubernetes.io/component
+        operator: DoesNotExist
   endpoints:
     - port: http
       path: /metrics
       interval: 30s
 ```
 
-- [ ] **Step 4.6: Update `apps/kube-prometheus-stack/base/kustomization.yaml`**
+- [ ] **Step 4.6: Update `apps/kube-prometheus-stack-config/base/kustomization.yaml`**
 
 Append after the existing entries:
 
@@ -862,15 +879,11 @@ Append after the existing entries:
   - servicemonitors/n8n.yaml
 ```
 
-The full file now:
+The full file now (after the Phase 2 correction + these additions):
 ```yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - namespace.yaml
-  - helmrepository.yaml
-  - helmrelease.yaml
-  - externalsecret-alertmanager.yaml
   - alertmanager-config.yaml
   - servicemonitors/minio.yaml
   - servicemonitors/qdrant.yaml
@@ -880,7 +893,7 @@ resources:
 - [ ] **Step 4.7: Commit, push, PR, merge**
 
 ```bash
-git add apps/kube-prometheus-stack/base/servicemonitors apps/kube-prometheus-stack/base/kustomization.yaml apps/n8n/base/helmrelease.yaml
+git add apps/kube-prometheus-stack-config/base/servicemonitors apps/kube-prometheus-stack-config/base/kustomization.yaml apps/n8n/base/helmrelease.yaml
 git commit -m "add ServiceMonitors for minio, qdrant, n8n + enable N8N_METRICS"
 git push -u origin feat/app-servicemonitors
 gh pr create --title "add ServiceMonitors for minio, qdrant, n8n" --body "Enables N8N_METRICS=true and adds ServiceMonitors for each app service. Backend ServiceMonitor lands with the backend instrumentation PR."
@@ -889,7 +902,7 @@ gh pr create --title "add ServiceMonitors for minio, qdrant, n8n" --body "Enable
 - [ ] **Step 4.8: Flux reconcile**
 
 ```bash
-flux reconcile kustomization kube-prometheus-stack --with-source
+flux reconcile kustomization kube-prometheus-stack-config --with-source
 flux reconcile kustomization n8n --with-source
 ```
 

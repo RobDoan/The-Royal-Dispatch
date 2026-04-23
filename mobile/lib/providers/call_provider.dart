@@ -1,4 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:royal_dispatch/services/call_api.dart';
+import 'package:royal_dispatch/services/elevenlabs_convai_client.dart';
+import 'package:royal_dispatch/providers/auth_provider.dart';
 
 enum CallStatus { idle, requesting, connecting, inCall, ending, ended, error }
 
@@ -40,7 +43,59 @@ class CallState {
 }
 
 class CallNotifier extends StateNotifier<CallState> {
-  CallNotifier() : super(const CallState());
+  CallNotifier(this._api) : super(const CallState());
+
+  final CallApi _api;
+  ElevenLabsConvaiClient? _client;
+
+  Future<void> startCall({
+    required String childId,
+    required String princess,
+    required String locale,
+  }) async {
+    markRequesting();
+    try {
+      final result = await _api.start(
+        childId: childId,
+        princess: princess,
+        locale: locale,
+      );
+      markConnecting(
+        princess: princess,
+        maxDurationSeconds: result.maxDurationSeconds,
+      );
+      _client = ElevenLabsConvaiClient(
+        signedUrl: result.signedUrl,
+        onEvent: (event, {detail}) {
+          if (event == ConvaiConnectionEvent.connected) markInCall();
+          if (event == ConvaiConnectionEvent.disconnected && state.status == CallStatus.inCall) {
+            markError(CallErrorReason.dropped);
+          }
+          if (event == ConvaiConnectionEvent.error) markError(CallErrorReason.network);
+        },
+        onAgentAudio: (_) {/* audio playback is out-of-scope for v1 wiring */},
+      );
+      await _client!.connect();
+    } on CallStartError catch (e) {
+      markError(switch (e.reason) {
+        CallStartReason.dailyCapReached => CallErrorReason.dailyCap,
+        CallStartReason.princessNotFavorite => CallErrorReason.princessNotFavorite,
+        CallStartReason.upstreamUnavailable => CallErrorReason.upstreamUnavailable,
+        _ => CallErrorReason.unknown,
+      });
+    } catch (_) {
+      markError(CallErrorReason.network);
+    }
+  }
+
+  Future<void> endCall() async {
+    markEnding();
+    await _client?.close();
+    _client = null;
+    markEnded();
+  }
+
+  // Keep the existing mark* methods below ↓
 
   void markRequesting() => state = state.copy(status: CallStatus.requesting, error: null);
 
@@ -63,5 +118,12 @@ class CallNotifier extends StateNotifier<CallState> {
   void reset() => state = const CallState();
 }
 
-final callProvider =
-    StateNotifierProvider<CallNotifier, CallState>((ref) => CallNotifier());
+final callApiProvider = Provider<CallApi>((ref) {
+  final token = ref.watch(authProvider).value ?? '';
+  const baseUrl = String.fromEnvironment('BACKEND_URL', defaultValue: 'http://localhost:8000');
+  return CallApi(baseUrl: baseUrl, token: token);
+});
+
+final callProvider = StateNotifierProvider<CallNotifier, CallState>((ref) {
+  return CallNotifier(ref.watch(callApiProvider));
+});

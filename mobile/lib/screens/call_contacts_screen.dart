@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:royal_dispatch/providers/call_provider.dart';
 import 'package:royal_dispatch/providers/family_provider.dart';
+import 'package:royal_dispatch/providers/locale_provider.dart';
 import 'package:royal_dispatch/theme.dart';
 import 'package:royal_dispatch/widgets/glass_card.dart';
 
@@ -68,7 +69,18 @@ class CallContactsScreen extends ConsumerWidget {
                     ),
                     onPressed: busy
                         ? null
-                        : () => context.push('/call/$princess'),
+                        : () {
+                            final childId = ref.read(selectedChildIdProvider);
+                            if (childId == null) return;
+                            final locale = ref.read(localeProvider).languageCode == 'vi' ? 'vi' : 'en';
+                            context.push('/call/$princess');
+                            // Fire-and-forget: state updates flow via callProvider so UI responds reactively.
+                            ref.read(callProvider.notifier).startCall(
+                              childId: childId,
+                              princess: princess,
+                              locale: locale,
+                            );
+                          },
                   ),
                 ]),
               ),

@@ -1,17 +1,26 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:royal_dispatch/providers/call_provider.dart';
+import 'package:royal_dispatch/services/call_api.dart';
+
+ProviderContainer _makeContainer() {
+  return ProviderContainer(overrides: [
+    callApiProvider.overrideWithValue(
+      CallApi(baseUrl: "http://t", token: "tok"),
+    ),
+  ]);
+}
 
 void main() {
   test("initial state is idle", () {
-    final container = ProviderContainer();
+    final container = _makeContainer();
     addTearDown(container.dispose);
 
     expect(container.read(callProvider).status, CallStatus.idle);
   });
 
   test("transitions through requesting → connecting → inCall", () {
-    final container = ProviderContainer();
+    final container = _makeContainer();
     addTearDown(container.dispose);
     final notifier = container.read(callProvider.notifier);
 
@@ -27,7 +36,7 @@ void main() {
   });
 
   test("error transitions set reason", () {
-    final container = ProviderContainer();
+    final container = _makeContainer();
     addTearDown(container.dispose);
     final notifier = container.read(callProvider.notifier);
 
@@ -37,7 +46,7 @@ void main() {
   });
 
   test("end resets to idle", () {
-    final container = ProviderContainer();
+    final container = _makeContainer();
     addTearDown(container.dispose);
     final notifier = container.read(callProvider.notifier);
 

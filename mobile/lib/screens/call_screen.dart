@@ -15,6 +15,7 @@ class CallScreen extends ConsumerStatefulWidget {
 
 class _CallScreenState extends ConsumerState<CallScreen> {
   Timer? _countdownTimer;
+  Timer? _navTimer;
   int _remainingSeconds = 300;
   bool _muted = false;
 
@@ -33,13 +34,21 @@ class _CallScreenState extends ConsumerState<CallScreen> {
   @override
   void dispose() {
     _countdownTimer?.cancel();
+    _navTimer?.cancel();
     super.dispose();
   }
 
   void _endCall() {
-    ref.read(callProvider.notifier).markEnding();
-    // Actual WebSocket close + navigation-pop are handled by a listener that
-    // watches callProvider at the app shell level (added in Task 16).
+    ref.read(callProvider.notifier).endCall();
+  }
+
+  void _scheduleNavHome(BuildContext context) {
+    if (_navTimer != null) return; // already scheduled
+    final router = GoRouter.of(context);
+    _navTimer = Timer(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      router.go('/home/call');
+    });
   }
 
   @override
@@ -51,11 +60,7 @@ class _CallScreenState extends ConsumerState<CallScreen> {
     }
     if (state.status == CallStatus.ended) {
       // Auto-return. Render the goodbye scene briefly.
-      final router = GoRouter.of(context);
-      Future.delayed(const Duration(seconds: 2), () {
-        if (!mounted) return;
-        router.go('/home/call');
-      });
+      _scheduleNavHome(context);
       return const _SceneScaffold(
         imageAsset: 'assets/images/call/call-ended.png',
         semanticsLabel: 'Call ended',

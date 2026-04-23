@@ -1,3 +1,6 @@
+import time
+from functools import wraps
+
 from langgraph.graph import StateGraph, END
 from backend.state import RoyalStateOptional
 from backend.nodes.fetch_brief import fetch_brief
@@ -10,22 +13,40 @@ from backend.nodes.infer_situation import infer_situation
 from backend.nodes.generate_life_lesson import generate_life_lesson
 from backend.nodes.synthesize_voice import synthesize_voice
 from backend.nodes.store_result import store_result
+from backend.utils.metrics import langgraph_node_duration
+
+
+def _time_node(node_name: str):
+    def deco(fn):
+        @wraps(fn)
+        def wrapper(state, *args, **kwargs):
+            story_type = state.get("story_type") or "unknown"
+            start = time.perf_counter()
+            try:
+                return fn(state, *args, **kwargs)
+            finally:
+                langgraph_node_duration.labels(
+                    node=node_name, story_type=story_type
+                ).observe(time.perf_counter() - start)
+        return wrapper
+    return deco
+
 
 def route_story_type(state: RoyalStateOptional) -> str:
     return state["story_type"]
 
 def build_graph():
     graph = StateGraph(RoyalStateOptional)
-    graph.add_node("fetch_brief", fetch_brief)
-    graph.add_node("extract_memories", extract_memories)
-    graph.add_node("classify_tone", classify_tone)
-    graph.add_node("load_persona", load_persona)
-    graph.add_node("fetch_memories", fetch_memories)
-    graph.add_node("generate_story", generate_story)
-    graph.add_node("infer_situation", infer_situation)
-    graph.add_node("generate_life_lesson", generate_life_lesson)
-    graph.add_node("synthesize_voice", synthesize_voice)
-    graph.add_node("store_result", store_result)
+    graph.add_node("fetch_brief", _time_node("fetch_brief")(fetch_brief))
+    graph.add_node("extract_memories", _time_node("extract_memories")(extract_memories))
+    graph.add_node("classify_tone", _time_node("classify_tone")(classify_tone))
+    graph.add_node("load_persona", _time_node("load_persona")(load_persona))
+    graph.add_node("fetch_memories", _time_node("fetch_memories")(fetch_memories))
+    graph.add_node("generate_story", _time_node("generate_story")(generate_story))
+    graph.add_node("infer_situation", _time_node("infer_situation")(infer_situation))
+    graph.add_node("generate_life_lesson", _time_node("generate_life_lesson")(generate_life_lesson))
+    graph.add_node("synthesize_voice", _time_node("synthesize_voice")(synthesize_voice))
+    graph.add_node("store_result", _time_node("store_result")(store_result))
 
     graph.set_entry_point("fetch_brief")
     graph.add_edge("fetch_brief", "extract_memories")
@@ -52,14 +73,14 @@ def build_pre_tts_graph():
     streaming manually.
     """
     graph = StateGraph(RoyalStateOptional)
-    graph.add_node("fetch_brief", fetch_brief)
-    graph.add_node("extract_memories", extract_memories)
-    graph.add_node("classify_tone", classify_tone)
-    graph.add_node("load_persona", load_persona)
-    graph.add_node("fetch_memories", fetch_memories)
-    graph.add_node("generate_story", generate_story)
-    graph.add_node("infer_situation", infer_situation)
-    graph.add_node("generate_life_lesson", generate_life_lesson)
+    graph.add_node("fetch_brief", _time_node("fetch_brief")(fetch_brief))
+    graph.add_node("extract_memories", _time_node("extract_memories")(extract_memories))
+    graph.add_node("classify_tone", _time_node("classify_tone")(classify_tone))
+    graph.add_node("load_persona", _time_node("load_persona")(load_persona))
+    graph.add_node("fetch_memories", _time_node("fetch_memories")(fetch_memories))
+    graph.add_node("generate_story", _time_node("generate_story")(generate_story))
+    graph.add_node("infer_situation", _time_node("infer_situation")(infer_situation))
+    graph.add_node("generate_life_lesson", _time_node("generate_life_lesson")(generate_life_lesson))
 
     graph.set_entry_point("fetch_brief")
     graph.add_edge("fetch_brief", "extract_memories")

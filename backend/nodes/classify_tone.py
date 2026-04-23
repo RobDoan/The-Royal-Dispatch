@@ -1,6 +1,7 @@
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage, SystemMessage
 from backend.state import RoyalStateOptional
+from backend.utils.metrics import external_api_calls
 
 _llm = None
 
@@ -20,10 +21,15 @@ def classify_tone(state: RoyalStateOptional) -> dict:
     if state["brief"] == "__fallback__":
         return {"tone": "praise"}
     llm = get_llm()
-    response = llm.invoke([
-        SystemMessage(content=CLASSIFY_SYSTEM),
-        HumanMessage(content=state["brief"]),
-    ])
+    try:
+        response = llm.invoke([
+            SystemMessage(content=CLASSIFY_SYSTEM),
+            HumanMessage(content=state["brief"]),
+        ])
+        external_api_calls.labels(provider="anthropic", outcome="ok").inc()
+    except Exception:
+        external_api_calls.labels(provider="anthropic", outcome="error").inc()
+        raise
     tone = response.content.strip().lower()
     if tone not in ("praise", "habit"):
         tone = "praise"

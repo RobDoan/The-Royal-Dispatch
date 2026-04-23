@@ -3,6 +3,7 @@ import logging
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage, SystemMessage
 from backend.state import RoyalStateOptional
+from backend.utils.metrics import external_api_calls
 
 logger = logging.getLogger(__name__)
 
@@ -54,10 +55,15 @@ def generate_life_lesson(state: RoyalStateOptional) -> dict:
         child_name=child_name,
     )
     llm = get_llm()
-    response = llm.invoke([
-        SystemMessage(content=system),
-        HumanMessage(content=f"Parent's note: {state['brief']}"),
-    ])
+    try:
+        response = llm.invoke([
+            SystemMessage(content=system),
+            HumanMessage(content=f"Parent's note: {state['brief']}"),
+        ])
+        external_api_calls.labels(provider="anthropic", outcome="ok").inc()
+    except Exception:
+        external_api_calls.labels(provider="anthropic", outcome="error").inc()
+        raise
     raw = response.content.strip()
 
     # Parse STORY: and CHALLENGE: sections using a state-machine approach

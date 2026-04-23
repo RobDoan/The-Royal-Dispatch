@@ -1,6 +1,7 @@
 import logging
 from backend.state import RoyalStateOptional
 from backend.utils.mem0_client import get_memory
+from backend.utils.metrics import external_api_calls
 
 logger = logging.getLogger(__name__)
 
@@ -21,13 +22,18 @@ def extract_memories(state: RoyalStateOptional) -> dict:
         return {}
     try:
         memory = get_memory()
-        memory.add(
-            [
-                {"role": "system", "content": _EXTRACTION_SYSTEM_PROMPT},
-                {"role": "user", "content": brief},
-            ],
-            user_id=child_id,
-        )
+        try:
+            memory.add(
+                [
+                    {"role": "system", "content": _EXTRACTION_SYSTEM_PROMPT},
+                    {"role": "user", "content": brief},
+                ],
+                user_id=child_id,
+            )
+            external_api_calls.labels(provider="mem0", outcome="ok").inc()
+        except Exception:
+            external_api_calls.labels(provider="mem0", outcome="error").inc()
+            raise
     except Exception:
         logger.warning(
             "extract_memories: mem0 unavailable, skipping memory extraction",

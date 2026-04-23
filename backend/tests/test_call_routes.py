@@ -90,6 +90,8 @@ def test_start_returns_signed_url(client, mock_db, signed_url_mock, fetch_memori
     assert overrides["agent"]["first_message"].startswith("Hi Emma!")
     assert overrides["agent"]["language"] == "en"
     assert overrides["conversation"]["max_duration_seconds"] == 300
+    # Placeholder should be replaced, not leaked to the LLM
+    assert "backend will append" not in prompt.lower()
 
 
 def test_start_localizes_for_vi(client, mock_db, signed_url_mock, fetch_memories_mock):

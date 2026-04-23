@@ -20,6 +20,11 @@ PERSONAS_DIR = Path(__file__).parent.parent / "personas"
 MAX_CALL_SECONDS = 300
 DAILY_CAP = 3
 
+# Sentinel phrase that every persona YAML uses as the memory-block placeholder.
+# It appears in both EN and VI prompts; see backend/personas/*.yaml.
+_MEMORY_PLACEHOLDER_EN = "(the backend will append a memory block here automatically)"
+_MEMORY_PLACEHOLDER_VI = "(backend sẽ tự động thêm phần ghi nhớ ở đây)"
+
 
 class CallStartRequest(BaseModel):
     child_id: str
@@ -105,8 +110,13 @@ def call_start(req: CallStartRequest, x_auth_token: str | None = Header(default=
 
     # 4. Build override payload and mint signed URL
     system_prompt = persona["call_system_prompt"][req.locale]
-    if memories:
-        system_prompt = f"{system_prompt}\n\n{memories}"
+    placeholder = _MEMORY_PLACEHOLDER_EN if req.locale == "en" else _MEMORY_PLACEHOLDER_VI
+    memory_block = memories if memories else "(No notable memories yet.)"
+    if placeholder in system_prompt:
+        system_prompt = system_prompt.replace(placeholder, memory_block)
+    else:
+        # Fallback if a future persona forgets the placeholder
+        system_prompt = f"{system_prompt}\n\n{memory_block}"
     first_message = persona["call_first_message"][req.locale].replace("{child_name}", child_name)
 
     overrides = {

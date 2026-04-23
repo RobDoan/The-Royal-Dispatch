@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:royal_dispatch/services/call_api.dart';
 import 'package:royal_dispatch/services/elevenlabs_convai_client.dart';
 import 'package:royal_dispatch/services/pcm_audio_sink.dart';
@@ -56,6 +57,14 @@ class CallNotifier extends StateNotifier<CallState> {
     required String locale,
   }) async {
     markRequesting();
+
+    // 1. Ensure mic permission before hitting the backend.
+    final micStatus = await Permission.microphone.request();
+    if (!micStatus.isGranted) {
+      markError(CallErrorReason.micDenied);
+      return;
+    }
+
     try {
       final result = await _api.start(
         childId: childId,

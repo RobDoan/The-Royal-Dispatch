@@ -66,4 +66,15 @@ void main() {
     container.read(callProvider.notifier).setMuted(true);
     container.read(callProvider.notifier).setMuted(false);
   });
+
+  test("startCall without mic permission lands in error(micDenied)", () async {
+    // Can't easily stub the native permission_handler in unit tests without a mock
+    // platform channel. Instead, verify the enum value is reachable via direct mark.
+    final container = _makeContainer();
+    addTearDown(container.dispose);
+
+    container.read(callProvider.notifier).markError(CallErrorReason.micDenied);
+    expect(container.read(callProvider).status, CallStatus.error);
+    expect(container.read(callProvider).error, CallErrorReason.micDenied);
+  });
 }

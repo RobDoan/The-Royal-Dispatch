@@ -41,7 +41,8 @@ class ElevenLabsConvaiClient {
 
   Future<void> _startMicStream() async {
     if (!await _recorder.hasPermission()) {
-      throw StateError("Microphone permission not granted");
+      // Should never happen: caller is expected to request permission before connect().
+      throw StateError("Microphone permission not granted at recorder level");
     }
     final stream = await _recorder.startStream(const RecordConfig(
       encoder: AudioEncoder.pcm16bits,

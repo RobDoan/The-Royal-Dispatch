@@ -168,6 +168,11 @@ Expected: the `-metrics` service exists on port 10254 (may log a ServiceMonitor 
 
 Repo: `gitops-rackspace`. Installs the Operator, Prometheus, Alertmanager, node-exporter, kube-state-metrics, and the Slack alerting config.
 
+> **Post-execution correction.** Two follow-up PRs were needed after the original plan landed; anyone replaying this plan from scratch should fold their changes into Steps 2.7–2.11 rather than repeat the mistakes.
+>
+> - **PR [#4](https://github.com/RobDoan/gitops-rackspace/pull/4)** — Split `alertmanager-config.yaml` into its own Flux `Kustomization` at `apps/kube-prometheus-stack-config/` with `dependsOn: [kube-prometheus-stack]`. The original single-Kustomization layout failed server-side dry-run because `AlertmanagerConfig` is a CRD installed by the HelmRelease — the Kustomization apply batch rejected the whole set before CRDs existed. Same split pattern applies to every downstream custom resource (ServiceMonitor, PrometheusRule) added in Phases 3–9.
+> - **PR [#5](https://github.com/RobDoan/gitops-rackspace/pull/5)** — Silence the chart's `Watchdog` alert by routing it to a `"null"` receiver. Watchdog (`expr: vector(1)`) always fires as a dead-man's-switch; its value is only realized when forwarded to an EXTERNAL monitor (Dead Man's Snitch, healthchecks.io) that notices its absence. Until that external hop exists, Watchdog is pure `#alerts` noise. See **Follow-ups** at the end of this phase.
+
 - [ ] **Step 2.1: Write Slack webhooks to Vault**
 
 Create **two** Slack Incoming Webhooks in the same Slack app (https://api.slack.com/apps → Incoming Webhooks): one bound to `#alerts`, one bound to `#alerts-critical`. Slack webhooks are per-channel — the `channel:` field in the Alertmanager payload is not reliable for routing, so each destination channel needs its own webhook URL.
@@ -488,6 +493,10 @@ Wait ~90 seconds, then check Slack `#alerts`. Expected: a message from Alertmana
 ```bash
 kubectl -n monitoring delete prometheusrule test-alert-remove-me
 ```
+
+### Phase 2 Follow-ups
+
+- **External dead-man's-switch for Watchdog.** Watchdog is currently routed to the `"null"` receiver in `alertmanager-config.yaml` so it stops spamming `#alerts`. It still fires in Prometheus and is visible on the Alertmanager UI, but its actual value — telling you when monitoring itself is broken — is not realized until it's forwarded out of the cluster. Pick an external endpoint (Dead Man's Snitch free tier, or a healthchecks.io project) that expects a heartbeat every ≤5 minutes; replace the `null` route target with a `webhookConfigs` receiver pointing at that URL. No other changes needed. Low priority until the homelab runs anything production-critical.
 
 ---
 

@@ -146,3 +146,97 @@ def call_start(req: CallStartRequest, x_auth_token: str | None = Header(default=
         princess_display_name=persona["name"],
         max_duration_seconds=MAX_CALL_SECONDS,
     )
+
+
+import hashlib
+import hmac
+import json as json_lib
+import os
+
+from fastapi import Request
+from backend.utils.mem0_client import get_memory
+
+
+_EXTRACTION_SYSTEM_PROMPT = (
+    "Extract only facts worth remembering long-term about this child: "
+    "their preferences (favorite toys, colors, foods, characters), "
+    "social patterns (friendships, sibling dynamics, social wins/struggles), "
+    "habits (recurring behaviors they are working on), "
+    "and milestones (significant achievements or life events). "
+    "Ignore transient details that are not reusable in future conversations."
+)
+
+
+def extract_memories_from_transcript(child_id: str, transcript: list[dict]) -> None:
+    """Store memorable facts the child said during the call. Fails silently if mem0 is down."""
+    if not child_id or not transcript:
+        return
+    try:
+        memory = get_memory()
+        child_text = " ".join(t["text"] for t in transcript if t.get("role") == "user")
+        if not child_text.strip():
+            return
+        memory.add(
+            [
+                {"role": "system", "content": _EXTRACTION_SYSTEM_PROMPT},
+                {"role": "user", "content": child_text},
+            ],
+            user_id=child_id,
+        )
+    except Exception:
+        logger.warning("extract_memories_from_transcript: mem0 unavailable, skipping", exc_info=True)
+
+
+def _verify_webhook_signature(body: bytes, header_sig: str | None) -> bool:
+    if not header_sig:
+        return False
+    secret = os.environ["ELEVENLABS_WEBHOOK_SECRET"].encode()
+    expected = hmac.new(secret, body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, header_sig)
+
+
+@router.post("/webhooks/elevenlabs/conversation")
+async def elevenlabs_webhook(
+    request: Request,
+    x_elevenlabs_signature: str | None = Header(default=None),
+):
+    body = await request.body()
+    if not _verify_webhook_signature(body, x_elevenlabs_signature):
+        raise HTTPException(status_code=401, detail="invalid_signature")
+
+    payload = json_lib.loads(body)
+    conversation_id = payload["conversation_id"]
+
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT child_id FROM calls WHERE conversation_id = %s",
+                (conversation_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                logger.warning("Webhook for unknown conversation_id %s — ignoring", conversation_id)
+                return {"status": "ignored"}
+            (child_id,) = row
+
+            cur.execute(
+                """
+                UPDATE calls
+                SET state = 'completed',
+                    ended_at = now(),
+                    duration_seconds = %s,
+                    transcript = %s,
+                    ended_reason = %s
+                WHERE conversation_id = %s
+                """,
+                (
+                    payload["duration_seconds"],
+                    json_lib.dumps(payload["transcript"]),
+                    payload["ended_reason"],
+                    conversation_id,
+                ),
+            )
+        conn.commit()
+
+    extract_memories_from_transcript(str(child_id), payload["transcript"])
+    return {"status": "ok"}

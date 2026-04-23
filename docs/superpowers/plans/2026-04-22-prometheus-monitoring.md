@@ -36,7 +36,7 @@ Expected: returns a non-error token lookup showing your policy.
 - [ ] **Step 0d: Create the monitoring namespace secret paths in Vault (data written in Phases 2, 3, 6)**
 
 No action yet — these Vault paths will be created inside the relevant phases. Documenting here for reference:
-- `secret/observability/slack-webhook` — key `webhook-url` (Phase 2)
+- `secret/observability/slack-webhook` — keys `default`, `critical` (Phase 2)
 - `secret/postgres/exporter-password` — key `password` (Phase 3)
 - `secret/observability/loki-s3` — keys `access-key`, `secret-key` (Phase 6)
 
@@ -168,19 +168,21 @@ Expected: the `-metrics` service exists on port 10254 (may log a ServiceMonitor 
 
 Repo: `gitops-rackspace`. Installs the Operator, Prometheus, Alertmanager, node-exporter, kube-state-metrics, and the Slack alerting config.
 
-- [ ] **Step 2.1: Write Slack webhook to Vault**
+- [ ] **Step 2.1: Write Slack webhooks to Vault**
 
-First obtain a Slack webhook URL (create at https://api.slack.com/apps → Incoming Webhooks) pointing at `#alerts`.
+Create **two** Slack Incoming Webhooks in the same Slack app (https://api.slack.com/apps → Incoming Webhooks): one bound to `#alerts`, one bound to `#alerts-critical`. Slack webhooks are per-channel — the `channel:` field in the Alertmanager payload is not reliable for routing, so each destination channel needs its own webhook URL.
 
 ```bash
-vault kv put secret/observability/slack-webhook webhook-url="https://hooks.slack.com/services/<T>/<B>/<X>"
+vault kv put secret/observability/slack-webhook \
+  default="https://hooks.slack.com/services/<T>/<B>/<X>" \
+  critical="https://hooks.slack.com/services/<T>/<B>/<Y>"
 ```
 
 Verify:
 ```bash
-vault kv get -field=webhook-url secret/observability/slack-webhook
+vault kv get secret/observability/slack-webhook
 ```
-Expected: the URL you just set.
+Expected: both `default` and `critical` keys populated with their respective webhook URLs.
 
 - [ ] **Step 2.2: Create branch**
 
@@ -306,10 +308,14 @@ spec:
     name: alertmanager-slack
     creationPolicy: Owner
   data:
-    - secretKey: webhook-url
+    - secretKey: default
       remoteRef:
         key: observability/slack-webhook
-        property: webhook-url
+        property: default
+    - secretKey: critical
+      remoteRef:
+        key: observability/slack-webhook
+        property: critical
 ```
 
 - [ ] **Step 2.7: Create `apps/kube-prometheus-stack/base/alertmanager-config.yaml`**
@@ -339,7 +345,7 @@ spec:
       slackConfigs:
         - apiURL:
             name: alertmanager-slack
-            key: webhook-url
+            key: default
           channel: "#alerts"
           sendResolved: true
           title: "{{ .CommonLabels.alertname }} — {{ .CommonLabels.severity }}"
@@ -351,7 +357,7 @@ spec:
       slackConfigs:
         - apiURL:
             name: alertmanager-slack
-            key: webhook-url
+            key: critical
           channel: "#alerts-critical"
           sendResolved: true
           title: "[CRITICAL] {{ .CommonLabels.alertname }}"
@@ -448,8 +454,8 @@ Expected: `prometheus-kube-prometheus-stack-prometheus-0` and `alertmanager-kube
 
 - [ ] **Step 2.17: Verify the Slack secret is populated**
 
-Run: `kubectl -n monitoring get secret alertmanager-slack -o jsonpath='{.data.webhook-url}' | base64 -d`
-Expected: your Slack webhook URL.
+Run: `kubectl -n monitoring get secret alertmanager-slack -o jsonpath='{.data}' | jq 'to_entries | map({key, value: (.value | @base64d)})'`
+Expected: both `default` and `critical` keys present, each decoded value is its respective Slack webhook URL.
 
 - [ ] **Step 2.18: Force-fire a test alert**
 

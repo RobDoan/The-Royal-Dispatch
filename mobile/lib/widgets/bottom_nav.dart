@@ -11,6 +11,8 @@ class BottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
     final isInbox = location == '/home/inbox';
+    final isStory = location == '/home/story';
+    final isCall = location == '/home/call';
 
     return SafeArea(
       top: false,
@@ -21,8 +23,24 @@ class BottomNav extends StatelessWidget {
           child: SizedBox(
             height: 80,
             child: Row(children: [
-              _NavTab(iconAsset: 'assets/icons/inbox-3d.png', label: 'Inbox', isActive: isInbox, onTap: () { HapticFeedback.lightImpact(); context.go('/home/inbox'); }),
-              _NavTab(iconAsset: 'assets/icons/story-3d.png', label: 'Story', isActive: !isInbox, onTap: () { HapticFeedback.lightImpact(); context.go('/home/story'); }),
+              _NavTab(
+                iconAsset: 'assets/icons/inbox-3d.png',
+                label: 'Inbox',
+                isActive: isInbox,
+                onTap: () { HapticFeedback.lightImpact(); context.go('/home/inbox'); },
+              ),
+              _NavTab(
+                iconAsset: 'assets/icons/story-3d.png',
+                label: 'Story',
+                isActive: isStory,
+                onTap: () { HapticFeedback.lightImpact(); context.go('/home/story'); },
+              ),
+              _NavTab(
+                iconAsset: 'assets/icons/call-3d.png',
+                label: 'Call',
+                isActive: isCall,
+                onTap: () { HapticFeedback.lightImpact(); context.go('/home/call'); },
+              ),
             ]),
           ),
         ),

@@ -179,6 +179,13 @@ export function UsersTable({ initialUsers }: Props) {
                               {child.role && (
                                 <span className="text-xs text-[var(--admin-text-muted)]">({child.role})</span>
                               )}
+                              <a
+                                href={`/users/${user.id}/children/${child.child_id}/calls`}
+                                className="text-blue-600 hover:underline text-xs"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                View call history
+                              </a>
                             </div>
                           ))}
                         </div>

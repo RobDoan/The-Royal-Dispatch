@@ -19,6 +19,8 @@ services:
       - BACKEND_PUBLIC_URL=http://localhost:8000
       - AUTH_SECRET=${AUTH_SECRET}
       - N8N_SHARED_SECRET=${N8N_SHARED_SECRET}
+      - ELEVENLABS_AGENT_ID=${ELEVENLABS_AGENT_ID}
+      - ELEVENLABS_WEBHOOK_SECRET=${ELEVENLABS_WEBHOOK_SECRET}
       - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
     env_file:
@@ -79,7 +81,7 @@ services:
       - N8N_BASIC_AUTH_PASSWORD=changeme
       - TELEGRAM_BOT_TOKEN=8739411539:AAH0aMqkShqkwG5vFjltkUJgzhxjoCgseAY
       - PARENT_CHAT_ID=5863873556
-      - BACKEND_URL=http://backend:8000
+      - THE_ROYAL_DISPATCH_API_URL=http://backend:8000
       - WEBHOOK_URL=https://n8n.quybits.com
       - N8N_SHARED_SECRET=${N8N_SHARED_SECRET}
     volumes:

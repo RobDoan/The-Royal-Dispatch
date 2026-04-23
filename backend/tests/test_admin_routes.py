@@ -226,3 +226,34 @@ def test_unlink_user_from_child(mocker):
     client = make_client(mocker)
     response = client.delete("/admin/children/child-1/users/user-1")
     assert response.status_code == 204
+
+
+def test_admin_lists_calls_for_child(client, mocker):
+    mock_conn = MagicMock()
+    mock_cur = MagicMock()
+    mock_conn.__enter__.return_value = mock_conn
+    mock_conn.cursor.return_value.__enter__.return_value = mock_cur
+    mocker.patch("backend.routes.admin.get_conn", return_value=mock_conn)
+
+    rows = [
+        (
+            "call-1", "belle", "en", "completed", "user_ended",
+            "2026-04-22T18:00:00+00:00", "2026-04-22T18:04:12+00:00", 252,
+            [{"role": "user", "text": "hi"}],
+        ),
+        (
+            "call-2", "elsa", "en", "completed", "timeout",
+            "2026-04-22T12:00:00+00:00", "2026-04-22T12:05:00+00:00", 300,
+            [{"role": "user", "text": "hello"}],
+        ),
+    ]
+    mock_cur.fetchall.return_value = rows
+    mock_cur.fetchone.return_value = (2,)
+
+    resp = client.get("/admin/children/child-abc/calls")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 2
+    assert len(body["items"]) == 2
+    assert body["items"][0]["princess"] == "belle"
+    assert body["items"][0]["transcript"][0]["text"] == "hi"

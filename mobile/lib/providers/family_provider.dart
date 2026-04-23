@@ -65,3 +65,11 @@ final activePrincessIdsProvider = Provider<List<String>>((ref) {
   }
   return child.favoritePrincesses;
 });
+
+/// Returns only the child's explicitly-favorite princesses, no fallback.
+/// Used by the Call feature where we want empty state rather than all characters.
+final selectedChildFavoritePrincessesProvider = Provider<List<String>>((ref) {
+  final child = ref.watch(selectedChildProvider);
+  if (child == null) return const [];
+  return List<String>.from(child.favoritePrincesses);
+});

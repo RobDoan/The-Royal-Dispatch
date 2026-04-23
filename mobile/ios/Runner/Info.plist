@@ -79,5 +79,7 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>The Royal Dispatch uses the microphone so you can talk with the princesses.</string>
 </dict>
 </plist>

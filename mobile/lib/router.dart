@@ -8,6 +8,8 @@ import 'package:royal_dispatch/screens/child_picker_screen.dart';
 import 'package:royal_dispatch/screens/inbox_screen.dart';
 import 'package:royal_dispatch/screens/story_request_screen.dart';
 import 'package:royal_dispatch/screens/story_playback_screen.dart';
+import 'package:royal_dispatch/screens/call_contacts_screen.dart';
+import 'package:royal_dispatch/screens/call_screen.dart';
 import 'package:royal_dispatch/widgets/bottom_nav.dart';
 import 'package:royal_dispatch/widgets/header.dart';
 import 'package:royal_dispatch/widgets/particles_background.dart';
@@ -48,7 +50,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(path: '/home/inbox', builder: (context, state) => const InboxScreen()),
           GoRoute(path: '/home/story', builder: (context, state) => const StoryRequestScreen()),
+          GoRoute(
+            path: '/home/call',
+            builder: (context, state) => const CallContactsScreen(),
+          ),
         ],
+      ),
+      GoRoute(
+        path: '/call/:princess',
+        builder: (context, state) => CallScreen(
+          princess: state.pathParameters['princess']!,
+        ),
       ),
       GoRoute(
         path: '/play/:princess',

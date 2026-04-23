@@ -4,6 +4,14 @@ from fastapi.testclient import TestClient
 from unittest.mock import MagicMock
 
 
+# Set required env vars at conftest import time so test modules that import
+# backend.main at module level (e.g. tests/test_utils/test_metrics.py) can
+# succeed during collection.
+os.environ.setdefault("AUTH_SECRET", "test-secret-hex")
+os.environ.setdefault("N8N_SHARED_SECRET", "test-n8n-secret")
+os.environ.setdefault("FRONTEND_URL", "http://localhost:3000")
+
+
 @pytest.fixture(autouse=True, scope="session")
 def _auth_secret_default():
     os.environ.setdefault("AUTH_SECRET", "test-secret-hex")

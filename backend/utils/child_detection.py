@@ -3,6 +3,8 @@ import logging
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage, SystemMessage
 
+from backend.utils.metrics import external_api_calls
+
 logger = logging.getLogger(__name__)
 
 _llm = None
@@ -31,10 +33,15 @@ def detect_children_in_brief(brief_text: str, child_names: list[str]) -> list[st
     llm = get_llm()
     prompt = f"Children names: {json.dumps(child_names)}\n\nParent's note: {brief_text}"
     try:
-        response = llm.invoke([
-            SystemMessage(content=_DETECT_SYSTEM),
-            HumanMessage(content=prompt),
-        ])
+        try:
+            response = llm.invoke([
+                SystemMessage(content=_DETECT_SYSTEM),
+                HumanMessage(content=prompt),
+            ])
+            external_api_calls.labels(provider="anthropic", outcome="ok").inc()
+        except Exception:
+            external_api_calls.labels(provider="anthropic", outcome="error").inc()
+            raise
         matched = json.loads(response.content.strip())
         if isinstance(matched, list):
             return [n for n in matched if n in child_names]

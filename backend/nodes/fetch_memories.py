@@ -1,6 +1,7 @@
 import logging
 from backend.state import RoyalStateOptional
 from backend.utils.mem0_client import get_memory
+from backend.utils.metrics import external_api_calls
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,12 @@ def fetch_memories(state: RoyalStateOptional) -> dict:
         memory = get_memory()
 
         # Build compact child profile from 10 most recent memories
-        all_memories = _as_list(memory.get_all(user_id=child_id))
+        try:
+            all_memories = _as_list(memory.get_all(user_id=child_id))
+            external_api_calls.labels(provider="mem0", outcome="ok").inc()
+        except Exception:
+            external_api_calls.labels(provider="mem0", outcome="error").inc()
+            raise
         profile_items = [m for m in all_memories[:10] if m.get("memory")]
         profile_lines = [f"- {m['memory']}" for m in profile_items]
         profile_ids = {m.get("id") for m in profile_items}
@@ -29,9 +35,14 @@ def fetch_memories(state: RoyalStateOptional) -> dict:
         # Contextually relevant memories for today's brief
         relevant_lines = []
         if brief and brief != "__fallback__":
-            relevant = _as_list(
-                memory.search(query=brief, user_id=child_id, limit=5)
-            )
+            try:
+                relevant = _as_list(
+                    memory.search(query=brief, user_id=child_id, limit=5)
+                )
+                external_api_calls.labels(provider="mem0", outcome="ok").inc()
+            except Exception:
+                external_api_calls.labels(provider="mem0", outcome="error").inc()
+                raise
             relevant_lines = [
                 f"[Today: {m['memory']}]"
                 for m in relevant

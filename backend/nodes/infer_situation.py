@@ -1,6 +1,7 @@
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage, SystemMessage
 from backend.state import RoyalStateOptional
+from backend.utils.metrics import external_api_calls
 
 _llm = None
 
@@ -23,10 +24,15 @@ Respond with the situation phrase only. No punctuation, no explanation."""
 def infer_situation(state: RoyalStateOptional) -> dict:
     brief = state["brief"]
     llm = get_llm()
-    response = llm.invoke([
-        SystemMessage(content=SYSTEM_PROMPT),
-        HumanMessage(content=brief),
-    ])
+    try:
+        response = llm.invoke([
+            SystemMessage(content=SYSTEM_PROMPT),
+            HumanMessage(content=brief),
+        ])
+        external_api_calls.labels(provider="anthropic", outcome="ok").inc()
+    except Exception:
+        external_api_calls.labels(provider="anthropic", outcome="error").inc()
+        raise
     situation = response.content.strip().lower().rstrip(".")
     # If LLM returns something outside our allowed list for edge cases, clamp to a fallback
     if situation not in ALLOWED_FALLBACKS and (

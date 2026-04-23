@@ -1,6 +1,7 @@
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage, SystemMessage
 from backend.state import RoyalStateOptional
+from backend.utils.metrics import external_api_calls
 
 _llm = None
 
@@ -68,8 +69,13 @@ def generate_story(state: RoyalStateOptional) -> dict:
         system += _MEMORY_SECTION.format(memories=memories, child_name=child_name)
 
     llm = get_llm()
-    response = llm.invoke([
-        SystemMessage(content=system),
-        HumanMessage(content=f"Parent's note about {child_name}'s day: {state['brief']}"),
-    ])
+    try:
+        response = llm.invoke([
+            SystemMessage(content=system),
+            HumanMessage(content=f"Parent's note about {child_name}'s day: {state['brief']}"),
+        ])
+        external_api_calls.labels(provider="anthropic", outcome="ok").inc()
+    except Exception:
+        external_api_calls.labels(provider="anthropic", outcome="error").inc()
+        raise
     return {"story_text": response.content.strip()}

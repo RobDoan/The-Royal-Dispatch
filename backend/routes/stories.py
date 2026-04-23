@@ -17,6 +17,7 @@ from backend.graph import pre_tts_graph
 from backend.nodes.store_result import store_result_from_bytes
 from backend.nodes.synthesize_voice import synthesize_voice_stream
 from backend.utils.child_detection import detect_children_in_brief
+from backend.utils.metrics import story_generation_seconds
 from backend.utils.time_utils import get_logical_date_iso
 
 logger = logging.getLogger(__name__)
@@ -266,12 +267,17 @@ async def generate_story_sse(
             "child_name": "Emma",
         }
 
+        _story_gen_start = time.perf_counter()
         try:
             pre_state = await asyncio.to_thread(pre_tts_graph.invoke, initial_state)
         except Exception:
             logger.exception("Story generation failed")
             yield "event: error\ndata: generation_failed\n\n"
             return
+        finally:
+            story_generation_seconds.labels(
+                story_type=initial_state.get("story_type", "daily")
+            ).observe(time.perf_counter() - _story_gen_start)
 
         _cache_generation(generation_id, pre_state)
 
@@ -331,7 +337,13 @@ async def get_story_stream(
             "child_id": child_id,
             "child_name": "Emma",
         }
-        pre_state = await asyncio.to_thread(pre_tts_graph.invoke, initial_state)
+        _story_gen_start = time.perf_counter()
+        try:
+            pre_state = await asyncio.to_thread(pre_tts_graph.invoke, initial_state)
+        finally:
+            story_generation_seconds.labels(
+                story_type=initial_state.get("story_type", "daily")
+            ).observe(time.perf_counter() - _story_gen_start)
 
     return StreamingResponse(
         _tee_and_save(pre_state),

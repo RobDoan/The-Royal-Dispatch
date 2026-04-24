@@ -1255,6 +1255,13 @@ Expected: one or more series with non-zero values.
 
 Repo: `gitops-rackspace`. Single-binary Loki with chunks in existing MinIO.
 
+> **Post-execution corrections.** The Loki chart (6.55.0) turned out to be the sharpest-edged piece of this rollout — four follow-up PRs landed before Loki actually started scraping. Future replays should fold these inline and run `helm template grafana/loki --version 6.55.0 --values my-values.yaml` locally **before** pushing, not after watching the pod crashloop four times.
+>
+> - **SingleBinary validation (gitops PR [#13](https://github.com/RobDoan/gitops-rackspace/pull/13))**: chart's `validate.yaml` rejects the install if `read.replicas`, `write.replicas`, or `backend.replicas` are non-zero and `deploymentMode: SingleBinary` is set. Chart defaults are non-zero. Must explicitly zero all three — the YAML below does that.
+> - **Bucket-init Job env var ordering (same PR)**: Kubernetes `$(VAR_NAME)` expansion in container env values only references vars declared **earlier** in the list. `MC_HOST_local=http://$(S3_ACCESS_KEY):$(S3_SECRET_KEY)@...` must come **after** the two `valueFrom: secretKeyRef` entries, not before them, or the placeholders go to `mc` literally and MinIO 401s.
+> - **Compactor requires delete-request store (PR [#16](https://github.com/RobDoan/gitops-rackspace/pull/16))**: when `loki.compactor.retention_enabled: true`, Loki also requires `loki.compactor.delete_request_store: s3` (matching the schema's `object_store`). Otherwise the loki container aborts with `invalid compactor config: compactor.delete-request-store should be configured when retention is enabled`.
+> - **Canary disable path (PR [#18](https://github.com/RobDoan/gitops-rackspace/pull/18))**: chart 6.x moved `lokiCanary` to top level; `monitoring.lokiCanary.enabled: false` is silently ignored in this version. Set `lokiCanary.enabled: false` at top level. `selfMonitoring` is still under `monitoring`.
+
 - [ ] **Step 6.1: Generate MinIO credentials for Loki and store in Vault**
 
 ```bash
@@ -1352,8 +1359,10 @@ spec:
         - name: mc
           image: minio/mc:RELEASE.2024-11-05T11-29-45Z
           env:
-            - name: MC_HOST_local
-              value: "http://$(S3_ACCESS_KEY):$(S3_SECRET_KEY)@minio.minio.svc.cluster.local:9000"
+            # Order matters: K8s $(VAR_NAME) expansion only references vars
+            # declared EARLIER in the list. MC_HOST_local must come after the
+            # two valueFrom entries or mc gets "$(S3_ACCESS_KEY)" as the literal
+            # password and MinIO 401s.
             - name: S3_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
@@ -1364,6 +1373,8 @@ spec:
                 secretKeyRef:
                   name: loki-s3
                   key: secret-key
+            - name: MC_HOST_local
+              value: "http://$(S3_ACCESS_KEY):$(S3_SECRET_KEY)@minio.minio.svc.cluster.local:9000"
           command:
             - sh
             - -c
@@ -1434,6 +1445,8 @@ spec:
         retention_period: 720h
       compactor:
         retention_enabled: true
+        # Required when retention_enabled is true; must match schema object_store.
+        delete_request_store: s3
     singleBinary:
       replicas: 1
       persistence:
@@ -1446,6 +1459,14 @@ spec:
           memory: 256Mi
         limits:
           memory: 512Mi
+    # SingleBinary mode — chart validate.yaml rejects the install unless the
+    # SimpleScalable components are explicitly zeroed (they default non-zero).
+    read:
+      replicas: 0
+    write:
+      replicas: 0
+    backend:
+      replicas: 0
     minio:
       enabled: false
     chunksCache:
@@ -1454,13 +1475,15 @@ spec:
       enabled: false
     gateway:
       enabled: false
+    # Chart 6.x: lokiCanary lives at top level. The monitoring.lokiCanary path
+    # is a no-op in this version.
+    lokiCanary:
+      enabled: false
     monitoring:
       selfMonitoring:
         enabled: false
         grafanaAgent:
           installOperator: false
-      lokiCanary:
-        enabled: false
     test:
       enabled: false
     serviceMonitor:

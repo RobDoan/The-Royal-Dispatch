@@ -103,13 +103,7 @@ export function AudioPlayer({ princess, audioUrl, storyText, royalChallenge }: P
       </div>
 
       {/* Top Header Navigation */}
-      <div className="absolute top-0 left-0 right-0 p-6 pt-safe flex items-center justify-between z-50">
-        <button 
-          onClick={() => router.back()}
-          className="w-12 h-12 flex items-center justify-center text-white drop-shadow-lg"
-        >
-          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
-        </button>
+      <div className="absolute top-0 left-0 right-0 p-6 pt-safe flex items-center justify-end z-50">
         <button className="w-12 h-12 flex items-center justify-center text-white drop-shadow-lg">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>
         </button>

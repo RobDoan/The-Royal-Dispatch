@@ -16,7 +16,7 @@ export default function PlayPage() {
   const router = useRouter();
   const locale = useLocale();
   const t = useTranslations('app');
-  const { selectedChild } = useUser();
+  const { selectedChild, loading } = useUser();
 
   const princessId = (params.princess as PrincessId) ?? 'elsa';
   const meta = PRINCESS_META[princessId] ?? PRINCESS_META.elsa;
@@ -27,11 +27,18 @@ export default function PlayPage() {
   const [royalChallenge, setRoyalChallenge] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!loading && !selectedChild) {
+      router.replace(`/${locale}/pick-child`);
+    }
+  }, [loading, selectedChild, router, locale]);
+
+  useEffect(() => {
+    if (loading || !selectedChild) return;
     const cleanup = generateStorySSE(
       princessId as Princess,
       locale as Language,
       'daily',
-      selectedChild?.id,
+      selectedChild.id,
       (event) => {
         if (event.type === 'ready' || event.type === 'cached') {
           setStoryText(event.storyText || '');
@@ -44,7 +51,7 @@ export default function PlayPage() {
       },
     );
     return cleanup;
-  }, [princessId, selectedChild?.id, locale]);
+  }, [princessId, selectedChild, locale, loading]);
 
   if (pageState === 'ready') {
     return (

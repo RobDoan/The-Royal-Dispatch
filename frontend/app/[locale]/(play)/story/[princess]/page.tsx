@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { AudioPlayer } from '@/components/AudioPlayer';
+import { StoryWaiting } from '@/components/StoryWaiting';
 import { fetchStory, Princess } from '@/lib/api';
-import { PRINCESS_META, PRINCESS_OVERLAY, type PrincessId } from '@/lib/princesses';
+import { PRINCESS_META, type PrincessId } from '@/lib/princesses';
 import { useUser } from '@/hooks/useUser';
 type PageState = 'polling' | 'ready' | 'timeout' | 'error';
 
@@ -22,7 +23,6 @@ export default function StoryPlayPage() {
 
   const princessId = (params.princess as PrincessId) ?? 'elsa';
   const meta = PRINCESS_META[princessId] ?? PRINCESS_META.elsa;
-  const overlay = PRINCESS_OVERLAY[princessId] ?? 'rgba(200,200,200,0.2)';
 
   const [pageState, setPageState] = useState<PageState>('polling');
   const [audioUrl, setAudioUrl] = useState('');
@@ -105,22 +105,10 @@ export default function StoryPlayPage() {
     );
   }
 
-  // polling state — looping video
   return (
-    <div className="fixed inset-0 overflow-hidden">
-      <video
-        src="/videos/Princess_Writes_Letter_For_Emma.mp4"
-        autoPlay
-        loop
-        muted
-        playsInline
-        className="w-full h-full object-cover"
-      />
-      <div
-        className="absolute inset-0"
-        style={{ backgroundColor: overlay }}
-      />
-      <span className="sr-only">{tStory('writing', { princess: meta.name })}</span>
-    </div>
+    <StoryWaiting
+      princess={{ id: princessId, ...meta }}
+      message={tStory('writing', { princess: meta.name })}
+    />
   );
 }

@@ -9,4 +9,3 @@ node_modules/
 *.egg-info/
 supabase/.temp/
 admin/tsconfig.tsbuildinfo
-docs/personal/

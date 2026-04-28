@@ -24,16 +24,15 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Merge Staging
+      - name: Sync staging tree onto main
         run: |
           git fetch origin staging
-          git merge --squash origin/staging
-
-      - name: Filter Directories
-        run: |
+          git read-tree --reset -u origin/staging
           git rm -rf --ignore-unmatch .agents .claude docs/superpowers docs/specs docs/blogs docs/personal CLAUDE.md GEMINI.md opencode.json skills-lock.json frontend/CLAUDE.md frontend/AGENTS.md
-
-      - name: Commit and Push
-        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to sync."
+            exit 0
+          fi
           git commit -m "${{ github.event.pull_request.title }} (#${{ github.event.pull_request.number }})"
           git push origin main
